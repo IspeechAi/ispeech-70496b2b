@@ -9,7 +9,138 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      tts_api_configs: {
+        Row: {
+          api_key_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          monthly_quota: number
+          priority: number
+          provider: Database["public"]["Enums"]["tts_provider"]
+          updated_at: string
+        }
+        Insert: {
+          api_key_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_quota?: number
+          priority?: number
+          provider: Database["public"]["Enums"]["tts_provider"]
+          updated_at?: string
+        }
+        Update: {
+          api_key_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_quota?: number
+          priority?: number
+          provider?: Database["public"]["Enums"]["tts_provider"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tts_cache: {
+        Row: {
+          audio_url: string
+          created_at: string
+          expires_at: string
+          id: string
+          provider: Database["public"]["Enums"]["tts_provider"]
+          text_hash: string
+          text_input: string
+          voice_id: string | null
+        }
+        Insert: {
+          audio_url: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider: Database["public"]["Enums"]["tts_provider"]
+          text_hash: string
+          text_input: string
+          voice_id?: string | null
+        }
+        Update: {
+          audio_url?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider?: Database["public"]["Enums"]["tts_provider"]
+          text_hash?: string
+          text_input?: string
+          voice_id?: string | null
+        }
+        Relationships: []
+      }
+      tts_usage_tracking: {
+        Row: {
+          characters_used: number
+          created_at: string
+          id: string
+          month_year: string
+          provider: Database["public"]["Enums"]["tts_provider"]
+          requests_count: number
+          updated_at: string
+        }
+        Insert: {
+          characters_used?: number
+          created_at?: string
+          id?: string
+          month_year: string
+          provider: Database["public"]["Enums"]["tts_provider"]
+          requests_count?: number
+          updated_at?: string
+        }
+        Update: {
+          characters_used?: number
+          created_at?: string
+          id?: string
+          month_year?: string
+          provider?: Database["public"]["Enums"]["tts_provider"]
+          requests_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_tts_history: {
+        Row: {
+          audio_url: string | null
+          characters_count: number
+          created_at: string
+          id: string
+          provider_used: Database["public"]["Enums"]["tts_provider"]
+          text_input: string
+          user_id: string | null
+          voice_id: string | null
+          voice_type: Database["public"]["Enums"]["voice_type"] | null
+        }
+        Insert: {
+          audio_url?: string | null
+          characters_count: number
+          created_at?: string
+          id?: string
+          provider_used: Database["public"]["Enums"]["tts_provider"]
+          text_input: string
+          user_id?: string | null
+          voice_id?: string | null
+          voice_type?: Database["public"]["Enums"]["voice_type"] | null
+        }
+        Update: {
+          audio_url?: string | null
+          characters_count?: number
+          created_at?: string
+          id?: string
+          provider_used?: Database["public"]["Enums"]["tts_provider"]
+          text_input?: string
+          user_id?: string | null
+          voice_id?: string | null
+          voice_type?: Database["public"]["Enums"]["voice_type"] | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +149,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      tts_provider:
+        | "elevenlabs"
+        | "openai"
+        | "azure"
+        | "google"
+        | "amazon_polly"
+        | "coqui"
+      voice_type: "male" | "female" | "neutral" | "robotic" | "emotional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +271,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      tts_provider: [
+        "elevenlabs",
+        "openai",
+        "azure",
+        "google",
+        "amazon_polly",
+        "coqui",
+      ],
+      voice_type: ["male", "female", "neutral", "robotic", "emotional"],
+    },
   },
 } as const
