@@ -219,9 +219,8 @@ async function generateOpenAITTS(text: string, voice: string, speed: number): Pr
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  const uint8Array = new Uint8Array(arrayBuffer)
-  const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
-  return `data:audio/mp3;base64,${btoa(binaryString)}`
+  const base64String = arrayBufferToBase64(arrayBuffer)
+  return `data:audio/mp3;base64,${base64String}`
 }
 
 async function generateElevenLabsTTS(text: string, voice: string, stability: number, clarity: number): Promise<string> {
@@ -238,6 +237,16 @@ async function generateElevenLabsTTS(text: string, voice: string, stability: num
     'onyx': 'JBFqnCBsd6RMkjVDRZzb', // George
     'nova': 'XB0fDUnXU5powFXDhCwa', // Charlotte
     'shimmer': 'Xb7hH8MSUJpSbSDYk0k2', // Alice
+    'alice': 'Xb7hH8MSUJpSbSDYk0k2', // Alice
+    'bill': 'pqHfZKP75CvOlQylNhV4', // Bill
+    'brian': 'nPczCjzI2devNBz1zQrb', // Brian
+    'charlie': 'IKne3meq5aSn9XLyUdCD', // Charlie
+    'daniel': 'onwK4e9ZLuTAKqWW03F9', // Daniel
+    'jessica': 'cgSgspJ2msm6clMCkdW9', // Jessica
+    'liam': 'TX3LPaxmHKxFdv7VOQHJ', // Liam
+    'matilda': 'XrExE9yKIg1WjnnlVkGX', // Matilda
+    'river': 'SAz9YHcvj6GT2YYXdXww', // River
+    'will': 'bIHbv24MWmeRgasZH58o', // Will
   }
 
   const voiceId = voiceMap[voice] || voiceMap['alloy']
@@ -265,19 +274,115 @@ async function generateElevenLabsTTS(text: string, voice: string, stability: num
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  const uint8Array = new Uint8Array(arrayBuffer)
-  const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
-  return `data:audio/mp3;base64,${binaryString}`
+  const base64String = arrayBufferToBase64(arrayBuffer)
+  return `data:audio/mp3;base64,${base64String}`
 }
 
 async function generateAzureTTS(text: string, voice: string, speed: number): Promise<string> {
-  // Placeholder for Azure TTS implementation
-  throw new Error('Azure TTS not implemented yet')
+  const apiKey = Deno.env.get('AZURE_TTS_API_KEY')
+  const region = Deno.env.get('AZURE_TTS_REGION') || 'eastus'
+  
+  if (!apiKey) {
+    throw new Error('Azure TTS API key not configured')
+  }
+
+  // Map voices to Azure TTS voice names
+  const voiceMap: { [key: string]: string } = {
+    'alloy': 'en-US-JennyNeural',
+    'echo': 'en-US-GuyNeural',
+    'fable': 'en-US-AriaNeural',
+    'onyx': 'en-US-DavisNeural',
+    'nova': 'en-US-AmberNeural',
+    'shimmer': 'en-US-AnaNeural',
+  }
+
+  const voiceName = voiceMap[voice] || voiceMap['alloy']
+  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    <voice name="${voiceName}">
+      <prosody rate="${speed > 1 ? 'fast' : speed < 1 ? 'slow' : 'medium'}">
+        ${text}
+      </prosody>
+    </voice>
+  </speak>`
+
+  const response = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+    method: 'POST',
+    headers: {
+      'Ocp-Apim-Subscription-Key': apiKey,
+      'Content-Type': 'application/ssml+xml',
+      'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3',
+    },
+    body: ssml,
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Azure TTS failed: ${response.status} ${errorText}`)
+  }
+
+  const arrayBuffer = await response.arrayBuffer()
+  const base64String = arrayBufferToBase64(arrayBuffer)
+  return `data:audio/mp3;base64,${base64String}`
 }
 
 async function generateGoogleTTS(text: string, voice: string, speed: number): Promise<string> {
-  // Placeholder for Google TTS implementation
-  throw new Error('Google TTS not implemented yet')
+  const apiKey = Deno.env.get('GOOGLE_TTS_API_KEY')
+  
+  if (!apiKey) {
+    throw new Error('Google TTS API key not configured')
+  }
+
+  // Map voices to Google TTS voice names
+  const voiceMap: { [key: string]: { name: string, gender: string } } = {
+    'alloy': { name: 'en-US-Standard-F', gender: 'FEMALE' },
+    'echo': { name: 'en-US-Standard-B', gender: 'MALE' },
+    'fable': { name: 'en-US-Standard-C', gender: 'FEMALE' },
+    'onyx': { name: 'en-US-Standard-D', gender: 'MALE' },
+    'nova': { name: 'en-US-Standard-E', gender: 'FEMALE' },
+    'shimmer': { name: 'en-US-Standard-G', gender: 'FEMALE' },
+  }
+
+  const voiceConfig = voiceMap[voice] || voiceMap['alloy']
+
+  const response = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      input: { text },
+      voice: {
+        languageCode: 'en-US',
+        name: voiceConfig.name,
+        ssmlGender: voiceConfig.gender,
+      },
+      audioConfig: {
+        audioEncoding: 'MP3',
+        speakingRate: speed,
+      },
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Google TTS failed: ${response.status} ${errorText}`)
+  }
+
+  const result = await response.json()
+  return `data:audio/mp3;base64,${result.audioContent}`
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const chunkSize = 0x8000 // 32KB chunks to avoid stack overflow
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.slice(i, i + chunkSize)
+    binary += String.fromCharCode.apply(null, Array.from(chunk))
+  }
+  
+  return btoa(binary)
 }
 
 async function updateUsageTracking(supabase: any, provider: string, charactersUsed: number) {
