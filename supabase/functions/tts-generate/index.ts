@@ -219,7 +219,9 @@ async function generateOpenAITTS(text: string, voice: string, speed: number): Pr
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  return `data:audio/mp3;base64,${btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))}`
+  const uint8Array = new Uint8Array(arrayBuffer)
+  const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
+  return `data:audio/mp3;base64,${btoa(binaryString)}`
 }
 
 async function generateElevenLabsTTS(text: string, voice: string, stability: number, clarity: number): Promise<string> {
@@ -228,14 +230,14 @@ async function generateElevenLabsTTS(text: string, voice: string, stability: num
     throw new Error('ElevenLabs API key not configured')
   }
 
-  // Map voices to ElevenLabs voice IDs (these would need to be actual ElevenLabs voice IDs)
+  // Map voices to ElevenLabs voice IDs
   const voiceMap: { [key: string]: string } = {
-    'alloy': '21m00Tcm4TlvDq8ikWAM', // Rachel
-    'echo': 'VR6AewLTigWG4xSOukaG', // Arnold
-    'fable': 'pNInz6obpgDQGcFmaJgB', // Adam
-    'onyx': 'Yko7PKHZNXotIFUBG7I9', // Antoni
-    'nova': 'EXAVITQu4vr4xnSDxMaL', // Bella
-    'shimmer': 'ErXwobaYiN019PkySvjV', // Elli
+    'alloy': '9BWtsMINqrJLrRacOk9x', // Aria
+    'echo': 'CwhRBWXzGAHq8TQ4Fs17', // Roger
+    'fable': 'EXAVITQu4vr4xnSDxMaL', // Sarah
+    'onyx': 'JBFqnCBsd6RMkjVDRZzb', // George
+    'nova': 'XB0fDUnXU5powFXDhCwa', // Charlotte
+    'shimmer': 'Xb7hH8MSUJpSbSDYk0k2', // Alice
   }
 
   const voiceId = voiceMap[voice] || voiceMap['alloy']
@@ -258,11 +260,14 @@ async function generateElevenLabsTTS(text: string, voice: string, stability: num
   })
 
   if (!response.ok) {
-    throw new Error(`ElevenLabs TTS failed: ${response.statusText}`)
+    const errorText = await response.text()
+    throw new Error(`ElevenLabs TTS failed: ${response.status} ${errorText}`)
   }
 
   const arrayBuffer = await response.arrayBuffer()
-  return `data:audio/mp3;base64,${btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))}`
+  const uint8Array = new Uint8Array(arrayBuffer)
+  const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
+  return `data:audio/mp3;base64,${binaryString}`
 }
 
 async function generateAzureTTS(text: string, voice: string, speed: number): Promise<string> {
