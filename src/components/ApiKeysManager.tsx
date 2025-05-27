@@ -92,18 +92,20 @@ const ApiKeysManager = () => {
 
   const fetchUserApiKeys = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_api_keys')
-        .select('*')
-        .eq('user_id', user?.id);
+      const { data, error } = await supabase.functions.invoke('user-api-key-helpers', {
+        body: {
+          action: 'get',
+          userId: user?.id
+        }
+      });
 
       if (error) throw error;
 
-      setUserApiKeys(data || []);
+      setUserApiKeys(data.data || []);
       
       // Populate the form with existing keys
       const keyMap: Record<string, string> = {};
-      data?.forEach((key) => {
+      data.data?.forEach((key: UserApiKey) => {
         keyMap[key.provider] = key.api_key;
       });
       setApiKeys(keyMap);
@@ -145,16 +147,14 @@ const ApiKeysManager = () => {
     setSavingKeys(prev => ({ ...prev, [keyConfig.id]: true }));
 
     try {
-      const { error } = await supabase
-        .from('user_api_keys')
-        .upsert({
-          user_id: user?.id,
+      const { error } = await supabase.functions.invoke('user-api-key-helpers', {
+        body: {
+          action: 'upsert',
+          userId: user?.id,
           provider: keyConfig.id,
-          api_key: value,
-          is_active: true
-        }, {
-          onConflict: 'user_id,provider'
-        });
+          apiKey: value
+        }
+      });
 
       if (error) throw error;
 
@@ -178,11 +178,13 @@ const ApiKeysManager = () => {
 
   const deleteApiKey = async (keyConfig: ApiKeyConfig) => {
     try {
-      const { error } = await supabase
-        .from('user_api_keys')
-        .delete()
-        .eq('user_id', user?.id)
-        .eq('provider', keyConfig.id);
+      const { error } = await supabase.functions.invoke('user-api-key-helpers', {
+        body: {
+          action: 'delete',
+          userId: user?.id,
+          provider: keyConfig.id
+        }
+      });
 
       if (error) throw error;
 
