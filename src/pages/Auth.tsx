@@ -21,7 +21,7 @@ const Auth = () => {
 
   React.useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/tts');
     }
   }, [user, navigate]);
 
@@ -38,7 +38,7 @@ const Auth = () => {
       if (error) throw error;
 
       toast({
-        title: "Success!",
+        title: "Welcome to ISPEECH!",
         description: "Account created successfully. You can now sign in.",
       });
     } catch (error: any) {
@@ -65,10 +65,10 @@ const Auth = () => {
       if (error) throw error;
 
       toast({
-        title: "Welcome back!",
+        title: "Welcome back to ISPEECH!",
         description: "Successfully signed in.",
       });
-      navigate('/');
+      navigate('/tts');
     } catch (error: any) {
       toast({
         title: "Sign in failed",
@@ -85,8 +85,8 @@ const Auth = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Volume2 className="h-8 w-8 text-purple-600" />
-            <h1 className="text-3xl font-bold text-gray-900">AI TTS</h1>
+            <Volume2 className="h-8 w-8 text-purple-600 animate-pulse" />
+            <h1 className="text-3xl font-bold text-gray-900">ISPEECH</h1>
           </div>
           <p className="text-gray-600">Sign in to access premium TTS features</p>
         </div>
@@ -128,7 +128,7 @@ const Auth = () => {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                     disabled={loading}
                   >
                     {loading ? (
@@ -170,7 +170,7 @@ const Auth = () => {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                     disabled={loading}
                   >
                     {loading ? (

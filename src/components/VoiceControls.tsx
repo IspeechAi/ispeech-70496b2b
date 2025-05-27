@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VoiceControlsProps {
   selectedVoice: string;
@@ -35,7 +36,11 @@ const VoiceControls = ({
     { id: 'liam', name: 'Liam', type: 'male', sample: 'Hello! I am Liam, a casual male voice perfect for informal content.' },
     { id: 'matilda', name: 'Matilda', type: 'female', sample: 'Hi there! I am Matilda, a cheerful female voice with character.' },
     { id: 'river', name: 'River', type: 'neutral', sample: 'Hello! I am River, a calm neutral voice for meditation and relaxation.' },
-    { id: 'will', name: 'Will', type: 'male', sample: 'Hi! I am Will, a confident male voice for presentations.' }
+    { id: 'will', name: 'Will', type: 'male', sample: 'Hi! I am Will, a confident male voice for presentations.' },
+    { id: 'adam', name: 'Adam', type: 'male', sample: 'Hello! I am Adam, a professional male voice with clarity and warmth.' },
+    { id: 'rachel', name: 'Rachel', type: 'female', sample: 'Hi! I am Rachel, an expressive female voice perfect for storytelling.' },
+    { id: 'aria', name: 'Aria', type: 'female', sample: 'Hello! I am Aria, a melodic female voice with beautiful intonation.' },
+    { id: 'fiona', name: 'Fiona', type: 'female', sample: 'Hi there! I am Fiona, a warm and friendly female voice.' }
   ];
 
   const providers = [
@@ -55,19 +60,16 @@ const VoiceControls = ({
     setPlayingVoice(voice.id);
     
     try {
-      const response = await fetch('/api/tts-sample', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('tts-sample', {
+        body: {
           text: voice.sample,
           voice: voice.id
-        }),
+        }
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (error) throw error;
+
+      if (data.audioUrl) {
         const audio = new Audio(data.audioUrl);
         
         audio.onended = () => setPlayingVoice(null);
@@ -89,7 +91,7 @@ const VoiceControls = ({
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-60">
             {voices.map((voice) => (
               <SelectItem key={voice.id} value={voice.id}>
                 <div className="flex items-center justify-between w-full">
