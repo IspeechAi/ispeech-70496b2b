@@ -10,6 +10,7 @@ import TTSHistory from '@/components/TTSHistory';
 import TextInput from '@/components/TextInput';
 import VoiceControls from '@/components/VoiceControls';
 import VoiceSettings from '@/components/VoiceSettings';
+import VoiceSelector from '@/components/VoiceSelector';
 import AudioPlayer from '@/components/AudioPlayer';
 import ApiStatus from '@/components/ApiStatus';
 import UsageStats from '@/components/UsageStats';
@@ -108,9 +109,12 @@ const TTS = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            AI Text to Speech
-          </h1>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Volume2 className={`h-8 w-8 text-purple-600 ${isGenerating ? 'animate-spin' : 'animate-pulse'}`} />
+            <h1 className="text-4xl font-bold text-gray-900">
+              AI Text to Speech
+            </h1>
+          </div>
           <p className="text-gray-600">
             Convert your text into lifelike speech with AI-powered voices
           </p>
@@ -134,11 +138,9 @@ const TTS = () => {
               <CardContent className="space-y-6">
                 <TextInput text={text} setText={setText} />
                 
-                <VoiceControls
+                <VoiceSelector 
                   selectedVoice={selectedVoice}
-                  setSelectedVoice={setSelectedVoice}
-                  selectedProvider={selectedProvider}
-                  setSelectedProvider={setSelectedProvider}
+                  onVoiceChange={setSelectedVoice}
                 />
 
                 <VoiceSettings

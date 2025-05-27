@@ -1,13 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Key, Save, Check, X } from 'lucide-react';
+import { Eye, EyeOff, Key, Save, Check, X, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuthStore } from '@/stores/authStore';
 
-interface ApiKey {
+interface ApiKeyConfig {
   id: string;
   name: string;
   label: string;
@@ -16,21 +18,22 @@ interface ApiKey {
   helpText?: string;
 }
 
+interface UserApiKey {
+  id: string;
+  provider: string;
+  api_key: string;
+  is_active: boolean;
+}
+
 const ApiKeysManager = () => {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
-  const [savedKeys, setSavedKeys] = useState<Record<string, boolean>>({});
+  const [userApiKeys, setUserApiKeys] = useState<UserApiKey[]>([]);
+  const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const { user } = useAuthStore();
 
-  const apiKeyConfigs: ApiKey[] = [
-    {
-      id: 'openai',
-      name: 'OPENAI_API_KEY',
-      label: 'OpenAI API Key',
-      placeholder: 'sk-proj-...',
-      isRequired: true,
-      helpText: 'Required for OpenAI TTS models (gpt-4o-audio-preview, tts-1, tts-1-hd)'
-    },
+  const apiKeyConfigs: ApiKeyConfig[] = [
     {
       id: 'elevenlabs',
       name: 'ELEVENLABS_API_KEY',
@@ -38,6 +41,14 @@ const ApiKeysManager = () => {
       placeholder: 'sk_...',
       isRequired: true,
       helpText: 'Premium voices with emotional range and cloning capabilities'
+    },
+    {
+      id: 'openai',
+      name: 'OPENAI_API_KEY',
+      label: 'OpenAI API Key',
+      placeholder: 'sk-proj-...',
+      isRequired: true,
+      helpText: 'Required for OpenAI TTS models (gpt-4o-audio-preview, tts-1, tts-1-hd)'
     },
     {
       id: 'azure',
@@ -70,24 +81,41 @@ const ApiKeysManager = () => {
       placeholder: 'your-secret-key',
       isRequired: false,
       helpText: 'Required with AWS Access Key ID for Amazon Polly'
-    },
-    {
-      id: 'anthropic',
-      name: 'ANTHROPIC_API_KEY',
-      label: 'Anthropic API Key',
-      placeholder: 'sk-ant-...',
-      isRequired: false,
-      helpText: 'For future Claude voice synthesis integration'
-    },
-    {
-      id: 'coqui',
-      name: 'COQUI_API_KEY',
-      label: 'Coqui Studio API Key',
-      placeholder: 'coqui_...',
-      isRequired: false,
-      helpText: 'Open-source TTS with voice cloning capabilities'
     }
   ];
+
+  useEffect(() => {
+    if (user) {
+      fetchUserApiKeys();
+    }
+  }, [user]);
+
+  const fetchUserApiKeys = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_api_keys')
+        .select('*')
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setUserApiKeys(data || []);
+      
+      // Populate the form with existing keys
+      const keyMap: Record<string, string> = {};
+      data?.forEach((key) => {
+        keyMap[key.provider] = key.api_key;
+      });
+      setApiKeys(keyMap);
+    } catch (error) {
+      console.error('Error fetching user API keys:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your API keys.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const toggleKeyVisibility = (keyId: string) => {
     setShowKeys(prev => ({
@@ -101,13 +129,9 @@ const ApiKeysManager = () => {
       ...prev,
       [keyId]: value
     }));
-    setSavedKeys(prev => ({
-      ...prev,
-      [keyId]: false
-    }));
   };
 
-  const saveApiKey = async (keyConfig: ApiKey) => {
+  const saveApiKey = async (keyConfig: ApiKeyConfig) => {
     const value = apiKeys[keyConfig.id];
     if (!value) {
       toast({
@@ -118,44 +142,82 @@ const ApiKeysManager = () => {
       return;
     }
 
+    setSavingKeys(prev => ({ ...prev, [keyConfig.id]: true }));
+
     try {
-      // In a real implementation, this would securely store the key
-      console.log(`Saving ${keyConfig.name}:`, value);
-      
-      setSavedKeys(prev => ({
-        ...prev,
-        [keyConfig.id]: true
-      }));
+      const { error } = await supabase
+        .from('user_api_keys')
+        .upsert({
+          user_id: user?.id,
+          provider: keyConfig.id,
+          api_key: value,
+          is_active: true
+        }, {
+          onConflict: 'user_id,provider'
+        });
+
+      if (error) throw error;
+
+      await fetchUserApiKeys();
 
       toast({
         title: "Success",
         description: `${keyConfig.label} saved successfully.`,
       });
-
-      // Simulate API call delay
-      setTimeout(() => {
-        setSavedKeys(prev => ({
-          ...prev,
-          [keyConfig.id]: false
-        }));
-      }, 2000);
     } catch (error) {
+      console.error('Error saving API key:', error);
       toast({
         title: "Error",
         description: `Failed to save ${keyConfig.label}.`,
         variant: "destructive",
       });
+    } finally {
+      setSavingKeys(prev => ({ ...prev, [keyConfig.id]: false }));
     }
   };
 
-  const getKeyStatus = (keyConfig: ApiKey) => {
+  const deleteApiKey = async (keyConfig: ApiKeyConfig) => {
+    try {
+      const { error } = await supabase
+        .from('user_api_keys')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('provider', keyConfig.id);
+
+      if (error) throw error;
+
+      setApiKeys(prev => {
+        const newKeys = { ...prev };
+        delete newKeys[keyConfig.id];
+        return newKeys;
+      });
+
+      await fetchUserApiKeys();
+
+      toast({
+        title: "Success",
+        description: `${keyConfig.label} deleted successfully.`,
+      });
+    } catch (error) {
+      console.error('Error deleting API key:', error);
+      toast({
+        title: "Error",
+        description: `Failed to delete ${keyConfig.label}.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getKeyStatus = (keyConfig: ApiKeyConfig) => {
     const hasValue = !!apiKeys[keyConfig.id];
-    const isSaved = savedKeys[keyConfig.id];
+    const isSaved = userApiKeys.some(key => key.provider === keyConfig.id && key.is_active);
+    const isSaving = savingKeys[keyConfig.id];
     
-    if (isSaved) return { icon: Check, color: 'text-green-500' };
-    if (hasValue) return { icon: Save, color: 'text-blue-500' };
-    if (keyConfig.isRequired) return { icon: X, color: 'text-red-500' };
-    return { icon: Key, color: 'text-gray-400' };
+    if (isSaving) return { icon: Key, color: 'text-blue-500', text: 'Saving...' };
+    if (isSaved) return { icon: Check, color: 'text-green-500', text: 'Saved' };
+    if (hasValue) return { icon: Save, color: 'text-blue-500', text: 'Save' };
+    if (keyConfig.isRequired) return { icon: X, color: 'text-red-500', text: 'Required' };
+    return { icon: Key, color: 'text-gray-400', text: 'Optional' };
   };
 
   return (
@@ -163,15 +225,16 @@ const ApiKeysManager = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Key className="h-5 w-5" />
-          API Keys Configuration
+          Your API Keys
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Configure your API keys for different TTS providers. Keys are stored securely and never logged.
+          Add your own API keys to access premium TTS services. Your keys are stored securely and encrypted.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
         {apiKeyConfigs.map((keyConfig) => {
-          const { icon: StatusIcon, color } = getKeyStatus(keyConfig);
+          const { icon: StatusIcon, color, text } = getKeyStatus(keyConfig);
+          const hasExistingKey = userApiKeys.some(key => key.provider === keyConfig.id);
           
           return (
             <div key={keyConfig.id} className="border rounded-lg p-4 space-y-3">
@@ -181,7 +244,7 @@ const ApiKeysManager = () => {
                   <div>
                     <Label className="font-medium">{keyConfig.label}</Label>
                     {keyConfig.isRequired && (
-                      <span className="text-red-500 text-xs ml-1">*Required</span>
+                      <span className="text-red-500 text-xs ml-1">*Recommended</span>
                     )}
                   </div>
                 </div>
@@ -200,22 +263,23 @@ const ApiKeysManager = () => {
                   </Button>
                   <Button
                     onClick={() => saveApiKey(keyConfig)}
-                    disabled={!apiKeys[keyConfig.id] || savedKeys[keyConfig.id]}
+                    disabled={!apiKeys[keyConfig.id] || savingKeys[keyConfig.id]}
                     size="sm"
                     className="h-8"
                   >
-                    {savedKeys[keyConfig.id] ? (
-                      <>
-                        <Check className="h-3 w-3 mr-1" />
-                        Saved
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-3 w-3 mr-1" />
-                        Save
-                      </>
-                    )}
+                    <StatusIcon className="h-3 w-3 mr-1" />
+                    {text}
                   </Button>
+                  {hasExistingKey && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteApiKey(keyConfig)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               </div>
               
@@ -236,24 +300,24 @@ const ApiKeysManager = () => {
         })}
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Getting Started</h4>
+          <h4 className="font-medium text-blue-900 mb-2">How it works</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• At minimum, configure OpenAI or ElevenLabs API keys to start using TTS</li>
-            <li>• Multiple providers enable automatic fallback and load balancing</li>
-            <li>• Each provider offers different voice qualities and pricing models</li>
-            <li>• Keys are encrypted and stored securely in your Supabase project</li>
+            <li>• Your API keys are given priority over our shared service keys</li>
+            <li>• This ensures faster processing and higher quotas for your requests</li>
+            <li>• Keys are encrypted and stored securely in our database</li>
+            <li>• You can remove your keys at any time</li>
           </ul>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div className="space-y-2">
-            <h4 className="font-medium">Provider Links:</h4>
+            <h4 className="font-medium">Get API Keys:</h4>
             <div className="space-y-1 text-blue-600">
-              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" className="block hover:underline">
-                → OpenAI API Keys
-              </a>
               <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener" className="block hover:underline">
                 → ElevenLabs API Keys
+              </a>
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" className="block hover:underline">
+                → OpenAI API Keys
               </a>
               <a href="https://azure.microsoft.com/en-us/services/cognitive-services/text-to-speech/" target="_blank" rel="noopener" className="block hover:underline">
                 → Azure Cognitive Services
@@ -269,7 +333,7 @@ const ApiKeysManager = () => {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Check className="h-3 w-3 text-green-500" />
-                <span>Configured and saved</span>
+                <span>Configured and active</span>
               </div>
               <div className="flex items-center gap-2">
                 <Save className="h-3 w-3 text-blue-500" />
@@ -277,7 +341,7 @@ const ApiKeysManager = () => {
               </div>
               <div className="flex items-center gap-2">
                 <X className="h-3 w-3 text-red-500" />
-                <span>Required but missing</span>
+                <span>Recommended for best experience</span>
               </div>
               <div className="flex items-center gap-2">
                 <Key className="h-3 w-3 text-gray-400" />
