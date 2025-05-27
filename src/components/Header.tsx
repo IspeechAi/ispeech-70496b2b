@@ -18,7 +18,7 @@ const Header = () => {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div onClick={() => navigate('/')} className="flex items-center gap-2 cursor-pointer bg-transparent">
-            <Volume2 className="h-6 w-6 text-purple-600 animate-pulse rounded-md bg-pink-700" />
+            <Volume2 className="h-6 w-6 text-purple-600 animate-pulse rounded-md bg-transparent" />
             <span className="text-xl font-bold text-gray-900">ISPEECH</span>
           </div>
 
