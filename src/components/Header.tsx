@@ -1,64 +1,111 @@
 
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Volume2, User, LogOut } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Volume2, LogOut, Settings, User, Mic } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const Header = () => {
   const { user, signOut } = useAuthStore();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+      navigate('/auth');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      toast({
+        title: "Sign out failed",
+        description: "There was an error signing out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b fixed top-0 w-full z-50">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <div onClick={() => navigate('/')} className="flex items-center gap-3 cursor-pointer">
-            <div className="relative">
-              <Volume2 className="h-8 w-8 text-purple-600 animate-pulse" />
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-bold">AI</span>
-              </div>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              iSPEECH
-            </span>
+    <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-purple-900 via-blue-900 to-purple-900 border-b border-purple-700 z-50">
+      <div className="flex items-center justify-between h-full px-4">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <div className="p-2 bg-purple-600 rounded-lg">
+            <Mic className="h-6 w-6 text-white" />
           </div>
+          <div className="hidden sm:block">
+            <h1 className="text-xl font-bold text-white">iSpeech</h1>
+            <p className="text-xs text-purple-200">AI Voice Processing</p>
+          </div>
+        </Link>
 
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <span className="text-sm text-gray-600">
-                  Welcome, {user.email}
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleSignOut} 
-                  className="flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
+        {/* User Menu */}
+        <div className="flex items-center gap-4">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10 border-2 border-purple-300">
+                    <AvatarFallback className="bg-purple-600 text-white">
+                      {user.email?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
-              </>
-            ) : (
-              <Button 
-                onClick={() => navigate('/auth')} 
-                className="flex items-center gap-2"
-              >
-                <User className="h-4 w-4" />
-                Sign In
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end">
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium text-sm">{user.email}</p>
+                    <p className="text-xs text-gray-500">
+                      {user.user_metadata?.full_name || 'User'}
+                    </p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/tts" className="flex items-center">
+                    <Volume2 className="mr-2 h-4 w-4" />
+                    Voice Studio
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" className="text-white hover:bg-purple-700">
+                <Link to="/auth">Sign In</Link>
               </Button>
-            )}
-          </div>
+              <Button asChild className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Link to="/auth">Get Started</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 
