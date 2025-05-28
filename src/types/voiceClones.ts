@@ -5,7 +5,7 @@ export interface VoiceClone {
   name: string;
   description?: string;
   audio_file_url: string;
-  status: 'processing' | 'ready' | 'failed';
+  status: string; // Changed from union type to string to match database
   created_at: string;
   updated_at: string;
 }
