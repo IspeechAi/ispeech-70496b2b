@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 import Landing from "./pages/Landing";
 import TTS from "./pages/TTS";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
 import Terms from "./pages/Terms";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/tts" element={<TTS />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/history" element={<History />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/terms" element={<Terms />} />

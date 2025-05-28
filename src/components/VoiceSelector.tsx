@@ -2,9 +2,12 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, Volume2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Play, Pause, Volume2, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthStore } from '@/stores/authStore';
+import { VoiceClone } from '@/types/voiceClones';
 
 interface Voice {
   id: string;
@@ -23,9 +26,12 @@ interface VoiceSelectorProps {
 const VoiceSelector = ({ selectedVoice, onVoiceChange }: VoiceSelectorProps) => {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [myVoices, setMyVoices] = useState<VoiceClone[]>([]);
+  const [isLoadingMyVoices, setIsLoadingMyVoices] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuthStore();
 
-  const voices: Voice[] = [
+  const defaultVoices: Voice[] = [
     { id: 'alloy', name: 'Alloy', gender: 'Neutral', description: 'Balanced and clear', provider: 'OpenAI', sampleText: 'Hello, this is Alloy speaking with a clear and balanced voice.' },
     { id: 'echo', name: 'Echo', gender: 'Male', description: 'Deep and resonant', provider: 'OpenAI', sampleText: 'Hello, this is Echo with a deep and resonant voice tone.' },
     { id: 'fable', name: 'Fable', gender: 'Female', description: 'Storytelling voice', provider: 'OpenAI', sampleText: 'Hello, this is Fable, perfect for storytelling and narration.' },
@@ -43,6 +49,32 @@ const VoiceSelector = ({ selectedVoice, onVoiceChange }: VoiceSelectorProps) => 
     { id: 'river', name: 'River', gender: 'Neutral', description: 'Natural and flowing', provider: 'ElevenLabs', sampleText: 'Hello, this is River with a natural and flowing speech pattern.' },
     { id: 'will', name: 'Will', gender: 'Male', description: 'Dynamic and engaging', provider: 'ElevenLabs', sampleText: 'Hello, this is Will speaking with a dynamic and engaging voice.' }
   ];
+
+  React.useEffect(() => {
+    if (user) {
+      fetchMyVoices();
+    }
+  }, [user]);
+
+  const fetchMyVoices = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('voice_clones')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMyVoices(data || []);
+    } catch (error) {
+      console.error('Error fetching my voices:', error);
+    } finally {
+      setIsLoadingMyVoices(false);
+    }
+  };
 
   const handlePlaySample = async (voice: Voice) => {
     try {
@@ -101,6 +133,15 @@ const VoiceSelector = ({ selectedVoice, onVoiceChange }: VoiceSelectorProps) => 
     }
   };
 
+  const handlePlayMyVoice = (voiceClone: VoiceClone) => {
+    // For now, just show a message since we'd need the actual audio file
+    toast({
+      title: "Voice Clone Selected",
+      description: `Selected your custom voice: ${voiceClone.name}`,
+    });
+    onVoiceChange(`clone_${voiceClone.id}`);
+  };
+
   const stopPlayback = () => {
     if (audioElement) {
       audioElement.pause();
@@ -118,50 +159,104 @@ const VoiceSelector = ({ selectedVoice, onVoiceChange }: VoiceSelectorProps) => 
           Select Voice
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Choose from our collection of AI voices and listen to samples
+          Choose from our collection of AI voices or use your custom clones
         </p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
-          {voices.map((voice) => (
-            <div
-              key={voice.id}
-              className={`border rounded-lg p-3 cursor-pointer transition-all ${
-                selectedVoice === voice.id
-                  ? 'border-purple-500 bg-purple-50'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => onVoiceChange(voice.id)}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h4 className="font-medium">{voice.name}</h4>
-                  <p className="text-xs text-gray-500">{voice.gender} • {voice.provider}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (playingVoice === voice.id) {
-                      stopPlayback();
-                    } else {
-                      handlePlaySample(voice);
-                    }
-                  }}
-                  className="h-8 w-8 p-0"
+        <Tabs defaultValue="default" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="default">Default Voices</TabsTrigger>
+            <TabsTrigger value="my-voices" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              My Voices ({myVoices.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="default" className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+              {defaultVoices.map((voice) => (
+                <div
+                  key={voice.id}
+                  className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                    selectedVoice === voice.id
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => onVoiceChange(voice.id)}
                 >
-                  {playingVoice === voice.id ? (
-                    <Pause className="h-3 w-3" />
-                  ) : (
-                    <Play className="h-3 w-3" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-gray-600">{voice.description}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h4 className="font-medium">{voice.name}</h4>
+                      <p className="text-xs text-gray-500">{voice.gender} • {voice.provider}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (playingVoice === voice.id) {
+                          stopPlayback();
+                        } else {
+                          handlePlaySample(voice);
+                        }
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      {playingVoice === voice.id ? (
+                        <Pause className="h-3 w-3" />
+                      ) : (
+                        <Play className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-600">{voice.description}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="my-voices" className="mt-4">
+            {isLoadingMyVoices ? (
+              <div className="text-center py-8">
+                <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Loading your voices...</p>
+              </div>
+            ) : myVoices.length === 0 ? (
+              <div className="text-center py-8">
+                <User className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500 mb-2">No custom voices yet</p>
+                <p className="text-sm text-gray-400">Create voice clones in the Settings page</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                {myVoices.map((voiceClone) => (
+                  <div
+                    key={voiceClone.id}
+                    className={`border rounded-lg p-3 cursor-pointer transition-all ${
+                      selectedVoice === `clone_${voiceClone.id}`
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handlePlayMyVoice(voiceClone)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="font-medium flex items-center gap-2">
+                          <User className="h-3 w-3 text-purple-600" />
+                          {voiceClone.name}
+                        </h4>
+                        <p className="text-xs text-gray-500">Custom Clone</p>
+                      </div>
+                    </div>
+                    {voiceClone.description && (
+                      <p className="text-xs text-gray-600">{voiceClone.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

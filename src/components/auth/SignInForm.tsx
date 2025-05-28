@@ -58,7 +58,7 @@ const SignInForm = ({
   };
 
   return (
-    <form onSubmit={handleSignIn} className="space-y-3">
+    <form onSubmit={handleSignIn} className="space-y-4">
       <div className="relative">
         <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
         <Input
@@ -88,14 +88,16 @@ const SignInForm = ({
       >
         {isLoading ? 'Signing in...' : 'Sign In'}
       </Button>
-      <Button
-        type="button"
-        variant="link"
-        onClick={onForgotPassword}
-        className="w-full text-sm text-purple-600 hover:text-purple-700"
-      >
-        Forgot Password?
-      </Button>
+      <div className="text-center">
+        <Button
+          type="button"
+          variant="link"
+          onClick={onForgotPassword}
+          className="text-sm text-purple-600 hover:text-purple-700"
+        >
+          Forgot your password?
+        </Button>
+      </div>
     </form>
   );
 };
