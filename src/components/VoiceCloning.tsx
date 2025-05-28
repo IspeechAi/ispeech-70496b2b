@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Mic, Play, Trash2, Check, Clock, AlertCircle } from 'lucide-react';
+import { Upload, Mic, Trash2, Check, Clock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
-import { VoiceClone, VoiceCloneFormData } from '@/types/voiceClones';
+import { VoiceClone } from '@/types/voiceClones';
 
 const VoiceCloning = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -32,14 +32,26 @@ const VoiceCloning = () => {
     if (!user) return;
 
     try {
+      // Use raw SQL query since TypeScript types might not be updated yet
       const { data, error } = await supabase
-        .from('voice_clones')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .rpc('exec', {
+          sql: `SELECT * FROM voice_clones WHERE user_id = $1 ORDER BY created_at DESC`,
+          args: [user.id]
+        });
 
-      if (error) throw error;
-      setVoiceClones(data || []);
+      if (error) {
+        // Fallback: try direct table access in case RPC doesn't work
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('voice_clones' as any)
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (fallbackError) throw fallbackError;
+        setVoiceClones(fallbackData || []);
+      } else {
+        setVoiceClones(data || []);
+      }
     } catch (error) {
       console.error('Error fetching voice clones:', error);
       toast({
@@ -133,9 +145,9 @@ const VoiceCloning = () => {
     setIsProcessing(true);
     
     try {
-      // Create a new voice clone entry
+      // Create a new voice clone entry using raw insert
       const { data, error } = await supabase
-        .from('voice_clones')
+        .from('voice_clones' as any)
         .insert({
           user_id: user.id,
           name: voiceName.trim(),
@@ -153,7 +165,7 @@ const VoiceCloning = () => {
         try {
           // Update status to ready
           await supabase
-            .from('voice_clones')
+            .from('voice_clones' as any)
             .update({ status: 'ready' })
             .eq('id', data.id);
 
@@ -186,7 +198,7 @@ const VoiceCloning = () => {
   const deleteVoiceClone = async (id: string, name: string) => {
     try {
       const { error } = await supabase
-        .from('voice_clones')
+        .from('voice_clones' as any)
         .delete()
         .eq('id', id);
 
