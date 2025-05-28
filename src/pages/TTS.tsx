@@ -14,8 +14,10 @@ import VoiceSelector from '@/components/VoiceSelector';
 import AudioPlayer from '@/components/AudioPlayer';
 import ApiStatus from '@/components/ApiStatus';
 import UsageStats from '@/components/UsageStats';
+import ProviderSelector from '@/components/ProviderSelector';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { useApiKeys } from '@/hooks/useApiKeys';
 
 const TTS = () => {
   const [text, setText] = useState('');
@@ -30,6 +32,7 @@ const TTS = () => {
   const { toast } = useToast();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const { userApiKeys } = useApiKeys();
 
   React.useEffect(() => {
     if (!user) {
@@ -132,7 +135,7 @@ const TTS = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Volume2 className="h-5 w-5 animate-pulse" />
-                  ISPEECH Generator
+                  iSPEECH Generator
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -141,6 +144,12 @@ const TTS = () => {
                 <VoiceSelector 
                   selectedVoice={selectedVoice}
                   onVoiceChange={setSelectedVoice}
+                />
+
+                <ProviderSelector
+                  selectedProvider={selectedProvider}
+                  onProviderChange={setSelectedProvider}
+                  userApiKeys={userApiKeys}
                 />
 
                 <VoiceSettings
@@ -177,7 +186,6 @@ const TTS = () => {
           <div className="space-y-6">
             <ApiStatus />
             <UsageStats />
-            <TTSHistory />
           </div>
         </div>
       </div>

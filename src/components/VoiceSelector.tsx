@@ -61,7 +61,7 @@ const VoiceSelector = ({ selectedVoice, onVoiceChange }: VoiceSelectorProps) => 
 
     try {
       const { data, error } = await supabase
-        .from('voice_clones' as any)
+        .from('voice_clones')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'ready')

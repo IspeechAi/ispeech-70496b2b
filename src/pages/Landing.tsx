@@ -23,31 +23,31 @@ const Landing = () => {
 
   const demoVoices = [
     {
-      id: 'adam',
-      name: 'Adam',
-      text: 'Welcome to ISPEECH - Transform your text into lifelike speech with professional AI voices.',
-      type: 'Professional Male',
-      avatar: '👨‍💼'
-    },
-    {
-      id: 'bella', 
-      name: 'Bella',
-      text: 'Experience the future of voice technology with our advanced text-to-speech platform.',
+      id: 'alice',
+      name: 'Alice',
+      text: 'Welcome to iSPEECH - Transform your text into lifelike speech with professional AI voices.',
       type: 'Professional Female',
       avatar: '👩‍💼'
     },
     {
-      id: 'narrator',
-      name: 'Narrator',
+      id: 'bill', 
+      name: 'Bill',
+      text: 'Experience the future of voice technology with our advanced text-to-speech platform.',
+      type: 'Professional Male',
+      avatar: '👨‍💼'
+    },
+    {
+      id: 'brian',
+      name: 'Brian',
       text: 'Create engaging content with our premium voice collection and custom cloning features.',
-      type: 'Storytelling Voice',
+      type: 'Friendly Male',
       avatar: '🎭'
     },
     {
-      id: 'aria',
-      name: 'Aria',
-      text: 'Join thousands of creators who trust ISPEECH for their voice generation needs.',
-      type: 'Warm Female',
+      id: 'nova',
+      name: 'Nova',
+      text: 'Join thousands of creators who trust iSPEECH for their voice generation needs.',
+      type: 'Energetic Female',
       avatar: '🎵'
     }
   ];
@@ -163,7 +163,7 @@ const Landing = () => {
                 </div>
               </div>
               <h1 className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                ISPEECH
+                iSPEECH
               </h1>
             </div>
             <h2 className="text-3xl text-gray-700 mb-8 max-w-4xl mx-auto font-medium">
@@ -263,7 +263,7 @@ const Landing = () => {
         <div className="max-w-4xl mx-auto text-center px-4">
           <h3 className="text-4xl font-bold mb-6">Ready to Get Started?</h3>
           <p className="text-xl text-gray-600 mb-8">
-            Join thousands of users creating amazing voice content with ISPEECH
+            Join thousands of users creating amazing voice content with iSPEECH
           </p>
           <div className="flex gap-4 justify-center">
             <Button 

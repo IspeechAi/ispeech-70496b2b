@@ -3,9 +3,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Save, Trash2 } from 'lucide-react';
 import { ApiKeyConfig, UserApiKey } from '@/types/apiKeys';
-import { getKeyStatus } from '@/utils/apiKeyStatus';
 
 interface ApiKeyInputProps {
   keyConfig: ApiKeyConfig;
@@ -18,7 +17,7 @@ interface ApiKeyInputProps {
   onDelete: (keyConfig: ApiKeyConfig) => void;
 }
 
-const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
+const ApiKeyInput = ({
   keyConfig,
   value,
   userApiKeys,
@@ -27,71 +26,90 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   onValueChange,
   onSave,
   onDelete
-}) => {
+}: ApiKeyInputProps) => {
   const [showKey, setShowKey] = useState(false);
-  
-  const { icon: StatusIcon, color, text } = getKeyStatus(keyConfig, apiKeys, userApiKeys, savingKeys);
-  const hasExistingKey = userApiKeys.some(key => key.provider === keyConfig.id);
+  const existingKey = userApiKeys.find(key => key.provider === keyConfig.id);
+  const hasKey = !!existingKey;
+  const isModified = value !== (existingKey?.api_key || '');
 
   return (
-    <div className="border rounded-lg p-4 space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <StatusIcon className={`h-4 w-4 ${color}`} />
-          <div>
-            <Label className="font-medium">{keyConfig.label}</Label>
-            {keyConfig.isRequired && (
-              <span className="text-red-500 text-xs ml-1">*Recommended</span>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowKey(!showKey)}
-            className="h-8 w-8 p-0"
-          >
-            {showKey ? (
-              <EyeOff className="h-3 w-3" />
-            ) : (
-              <Eye className="h-3 w-3" />
-            )}
-          </Button>
-          <Button
-            onClick={() => onSave(keyConfig)}
-            disabled={!value || savingKeys[keyConfig.id]}
-            size="sm"
-            className="h-8"
-          >
-            <StatusIcon className="h-3 w-3 mr-1" />
-            {text}
-          </Button>
-          {hasExistingKey && (
+        <Label htmlFor={keyConfig.id} className="text-sm font-medium">
+          {keyConfig.label}
+        </Label>
+        {hasKey && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+              ✓ Active
+            </span>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => onDelete(keyConfig)}
-              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+              className="text-red-500 hover:text-red-700 h-8 w-8 p-0"
+              title="Remove API key"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-4 w-4" />
             </Button>
-          )}
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Input
-          type={showKey ? 'text' : 'password'}
-          placeholder={keyConfig.placeholder}
-          value={value || ''}
-          onChange={(e) => onValueChange(keyConfig.id, e.target.value)}
-          className="font-mono text-sm"
-        />
-        {keyConfig.helpText && (
-          <p className="text-xs text-gray-500">{keyConfig.helpText}</p>
+          </div>
         )}
       </div>
+      
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Input
+            id={keyConfig.id}
+            type={showKey ? "text" : "password"}
+            placeholder={hasKey ? "••••••••••••••••" : keyConfig.placeholder}
+            value={value || ''}
+            onChange={(e) => onValueChange(keyConfig.id, e.target.value)}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={() => setShowKey(!showKey)}
+          >
+            {showKey ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+        
+        <Button
+          onClick={() => onSave(keyConfig)}
+          disabled={!value || savingKeys[keyConfig.id] || (!hasKey && !value) || (hasKey && !isModified)}
+          size="sm"
+          className="px-4"
+        >
+          {savingKeys[keyConfig.id] ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-1" />
+              {hasKey && isModified ? 'Update' : 'Save'}
+            </>
+          )}
+        </Button>
+      </div>
+      
+      <p className="text-xs text-gray-500">{keyConfig.description}</p>
+      
+      {keyConfig.helpUrl && (
+        <a
+          href={keyConfig.helpUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-blue-600 hover:underline"
+        >
+          Get your {keyConfig.label} →
+        </a>
+      )}
     </div>
   );
 };

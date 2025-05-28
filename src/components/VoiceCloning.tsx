@@ -32,26 +32,14 @@ const VoiceCloning = () => {
     if (!user) return;
 
     try {
-      // Use raw SQL query since TypeScript types might not be updated yet
       const { data, error } = await supabase
-        .rpc('exec', {
-          sql: `SELECT * FROM voice_clones WHERE user_id = $1 ORDER BY created_at DESC`,
-          args: [user.id]
-        });
+        .from('voice_clones')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        // Fallback: try direct table access in case RPC doesn't work
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('voice_clones' as any)
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (fallbackError) throw fallbackError;
-        setVoiceClones(fallbackData || []);
-      } else {
-        setVoiceClones(data || []);
-      }
+      if (error) throw error;
+      setVoiceClones(data || []);
     } catch (error) {
       console.error('Error fetching voice clones:', error);
       toast({
@@ -68,10 +56,10 @@ const VoiceCloning = () => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type.startsWith('audio/')) {
-        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        if (file.size > 25 * 1024 * 1024) { // 25MB limit
           toast({
             title: "File too large",
-            description: "Please upload an audio file smaller than 10MB",
+            description: "Please upload an audio file smaller than 25MB",
             variant: "destructive",
           });
           return;
@@ -145,9 +133,9 @@ const VoiceCloning = () => {
     setIsProcessing(true);
     
     try {
-      // Create a new voice clone entry using raw insert
+      // Create a new voice clone entry
       const { data, error } = await supabase
-        .from('voice_clones' as any)
+        .from('voice_clones')
         .insert({
           user_id: user.id,
           name: voiceName.trim(),
@@ -165,7 +153,7 @@ const VoiceCloning = () => {
         try {
           // Update status to ready
           await supabase
-            .from('voice_clones' as any)
+            .from('voice_clones')
             .update({ status: 'ready' })
             .eq('id', data.id);
 
@@ -198,7 +186,7 @@ const VoiceCloning = () => {
   const deleteVoiceClone = async (id: string, name: string) => {
     try {
       const { error } = await supabase
-        .from('voice_clones' as any)
+        .from('voice_clones')
         .delete()
         .eq('id', id);
 
@@ -277,7 +265,7 @@ const VoiceCloning = () => {
                 <Upload className="h-8 w-8 mx-auto mb-4 text-gray-400" />
                 <h3 className="font-medium mb-2">Upload Audio File</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  MP3, WAV, or M4A files (max 10MB)
+                  MP3, WAV, or M4A files (max 25MB)
                 </p>
                 <Input
                   type="file"

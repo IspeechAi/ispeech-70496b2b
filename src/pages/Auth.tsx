@@ -8,7 +8,8 @@ import { useAuthStore } from '@/stores/authStore';
 import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
 import SignInForm from '@/components/auth/SignInForm';
 import SignUpForm from '@/components/auth/SignUpForm';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import GitHubSignInButton from '@/components/auth/GitHubSignInButton';
+import FacebookSignInButton from '@/components/auth/FacebookSignInButton';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -47,9 +48,9 @@ const Auth = () => {
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Volume2 className="h-8 w-8 text-purple-600 animate-pulse" />
-            <span className="text-2xl font-bold text-gray-900">ISPEECH</span>
+            <span className="text-2xl font-bold text-gray-900">iSPEECH</span>
           </div>
-          <CardTitle>Welcome to ISPEECH</CardTitle>
+          <CardTitle>Welcome to iSPEECH</CardTitle>
           <p className="text-sm text-gray-600">
             Sign in to access AI-powered text-to-speech
           </p>
@@ -93,10 +94,16 @@ const Auth = () => {
               </div>
             </div>
 
-            <GoogleSignInButton
-              isLoading={isLoading}
-              setIsLoading={setIsLoading}
-            />
+            <div className="space-y-3">
+              <GitHubSignInButton
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
+              />
+              <FacebookSignInButton
+                isLoading={isLoading}
+                setIsLoading={setIsLoading}
+              />
+            </div>
           </Tabs>
 
           <div className="mt-6 text-center text-xs text-gray-500">

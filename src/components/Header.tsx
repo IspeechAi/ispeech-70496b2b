@@ -1,14 +1,13 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Volume2, User, LogOut, History, Settings } from 'lucide-react';
+import { Volume2, User, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const { user, signOut } = useAuthStore();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -16,8 +15,8 @@ const Header = () => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="max-w-6xl mx-auto px-4">
+    <nav className="bg-white shadow-sm border-b fixed top-0 w-full z-50">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div onClick={() => navigate('/')} className="flex items-center gap-3 cursor-pointer">
             <div className="relative">
@@ -27,42 +26,13 @@ const Header = () => {
               </div>
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              ISPEECH
+              iSPEECH
             </span>
           </div>
 
           <div className="flex items-center gap-4">
             {user ? (
               <>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant={location.pathname === '/tts' ? 'default' : 'ghost'} 
-                    size="sm" 
-                    onClick={() => navigate('/tts')} 
-                    className="flex items-center gap-2"
-                  >
-                    <Volume2 className="h-4 w-4" />
-                    TTS Generator
-                  </Button>
-                  <Button 
-                    variant={location.pathname === '/history' ? 'default' : 'ghost'} 
-                    size="sm" 
-                    onClick={() => navigate('/history')} 
-                    className="flex items-center gap-2"
-                  >
-                    <History className="h-4 w-4" />
-                    History
-                  </Button>
-                  <Button 
-                    variant={location.pathname === '/settings' ? 'default' : 'ghost'} 
-                    size="sm" 
-                    onClick={() => navigate('/settings')} 
-                    className="flex items-center gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Settings
-                  </Button>
-                </div>
                 <span className="text-sm text-gray-600">
                   Welcome, {user.email}
                 </span>

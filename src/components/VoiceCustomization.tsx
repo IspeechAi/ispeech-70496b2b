@@ -1,66 +1,106 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Save, RotateCcw } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Sliders, Play, Pause } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const VoiceCustomization = () => {
-  const [pitch, setPitch] = useState([0]);
-  const [tone, setTone] = useState([50]);
-  const [speed, setSpeed] = useState([50]);
-  const [emotion, setEmotion] = useState('neutral');
-  const [effect, setEffect] = useState('none');
+  const [pitch, setPitch] = useState([1.0]);
+  const [rate, setRate] = useState([1.0]);
+  const [volume, setVolume] = useState([1.0]);
+  const [emphasis, setEmphasis] = useState([0.5]);
+  const [pause, setPause] = useState([0.5]);
+  const [testText, setTestText] = useState('This is a test of voice customization settings. Listen to how these parameters affect the voice quality and delivery.');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
-  const emotions = [
-    { id: 'neutral', name: 'Neutral' },
-    { id: 'happy', name: 'Happy' },
-    { id: 'sad', name: 'Sad' },
-    { id: 'excited', name: 'Excited' },
-    { id: 'angry', name: 'Angry' },
-    { id: 'calm', name: 'Calm' },
-    { id: 'whisper', name: 'Whisper' },
-    { id: 'shout', name: 'Shout' }
-  ];
+  const testVoiceSettings = async () => {
+    if (!testText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter some test text.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const effects = [
-    { id: 'none', name: 'None' },
-    { id: 'robotic', name: 'Robotic' },
-    { id: 'child', name: 'Child-like' },
-    { id: 'elderly', name: 'Elderly' },
-    { id: 'alien', name: 'Alien' },
-    { id: 'monster', name: 'Monster' },
-    { id: 'echo', name: 'Echo' },
-    { id: 'reverb', name: 'Reverb' }
-  ];
+    // Stop currently playing audio
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+      setAudioElement(null);
+      setIsPlaying(false);
+      return;
+    }
 
-  const resetToDefaults = () => {
-    setPitch([0]);
-    setTone([50]);
-    setSpeed([50]);
-    setEmotion('neutral');
-    setEffect('none');
-    toast({
-      title: "Settings reset",
-      description: "Voice settings restored to defaults",
-    });
+    setIsPlaying(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('tts-generate', {
+        body: {
+          text: testText.trim(),
+          voice: 'alice',
+          speed: rate[0],
+          stability: emphasis[0],
+          clarity: volume[0],
+          pitch: pitch[0]
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.audioUrl) {
+        const audio = new Audio(data.audioUrl);
+        setAudioElement(audio);
+        
+        audio.onended = () => {
+          setIsPlaying(false);
+          setAudioElement(null);
+        };
+        
+        audio.onerror = () => {
+          setIsPlaying(false);
+          setAudioElement(null);
+          toast({
+            title: "Playback Error",
+            description: "Failed to play test audio.",
+            variant: "destructive",
+          });
+        };
+
+        await audio.play();
+        
+        toast({
+          title: "Playing test audio",
+          description: "Listen to how your settings affect the voice.",
+        });
+      }
+    } catch (error) {
+      console.error('Voice test error:', error);
+      setIsPlaying(false);
+      toast({
+        title: "Test Failed",
+        description: "Could not generate test audio. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const savePreset = () => {
+  const resetSettings = () => {
+    setPitch([1.0]);
+    setRate([1.0]);
+    setVolume([1.0]);
+    setEmphasis([0.5]);
+    setPause([0.5]);
     toast({
-      title: "Preset saved",
-      description: "Your custom voice settings have been saved",
-    });
-  };
-
-  const previewVoice = () => {
-    toast({
-      title: "Preview playing",
-      description: "Playing voice sample with your custom settings",
+      title: "Settings Reset",
+      description: "All voice customization settings have been reset to defaults.",
     });
   };
 
@@ -68,132 +108,153 @@ const VoiceCustomization = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Voice Parameters</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Sliders className="h-5 w-5" />
+            Voice Customization
+          </CardTitle>
           <p className="text-sm text-gray-600">
-            Fine-tune your voice characteristics
+            Fine-tune voice parameters to achieve the perfect sound for your content
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Pitch Control */}
-          <div>
-            <Label>Pitch: {pitch[0] > 0 ? '+' : ''}{pitch[0]}</Label>
+          <div className="space-y-2">
+            <Label>Pitch: {pitch[0].toFixed(1)}x</Label>
             <Slider
               value={pitch}
               onValueChange={setPitch}
-              min={-50}
-              max={50}
-              step={1}
-              className="mt-2"
+              max={2.0}
+              min={0.5}
+              step={0.1}
+              className="w-full"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Lower</span>
-              <span>Higher</span>
-            </div>
+            <p className="text-xs text-gray-500">Adjust the fundamental frequency of the voice</p>
           </div>
 
-          {/* Tone Control */}
-          <div>
-            <Label>Tone Warmth: {tone[0]}%</Label>
+          {/* Speaking Rate */}
+          <div className="space-y-2">
+            <Label>Speaking Rate: {rate[0].toFixed(1)}x</Label>
             <Slider
-              value={tone}
-              onValueChange={setTone}
-              min={0}
-              max={100}
-              step={1}
-              className="mt-2"
+              value={rate}
+              onValueChange={setRate}
+              max={3.0}
+              min={0.25}
+              step={0.25}
+              className="w-full"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Cold</span>
-              <span>Warm</span>
-            </div>
+            <p className="text-xs text-gray-500">Control how fast or slow the voice speaks</p>
           </div>
 
-          {/* Speed Control */}
-          <div>
-            <Label>Speaking Speed: {speed[0]}%</Label>
+          {/* Volume */}
+          <div className="space-y-2">
+            <Label>Volume: {volume[0].toFixed(1)}x</Label>
             <Slider
-              value={speed}
-              onValueChange={setSpeed}
-              min={25}
-              max={200}
-              step={5}
-              className="mt-2"
+              value={volume}
+              onValueChange={setVolume}
+              max={1.5}
+              min={0.1}
+              step={0.1}
+              className="w-full"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Slow</span>
-              <span>Fast</span>
-            </div>
+            <p className="text-xs text-gray-500">Adjust the loudness of the generated speech</p>
+          </div>
+
+          {/* Emphasis */}
+          <div className="space-y-2">
+            <Label>Emphasis: {(emphasis[0] * 100).toFixed(0)}%</Label>
+            <Slider
+              value={emphasis}
+              onValueChange={setEmphasis}
+              max={1.0}
+              min={0.0}
+              step={0.1}
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500">Control the emotional expressiveness and stress patterns</p>
+          </div>
+
+          {/* Pause Duration */}
+          <div className="space-y-2">
+            <Label>Pause Duration: {(pause[0] * 100).toFixed(0)}%</Label>
+            <Slider
+              value={pause}
+              onValueChange={setPause}
+              max={1.0}
+              min={0.0}
+              step={0.1}
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500">Adjust the length of natural pauses in speech</p>
+          </div>
+
+          {/* Test Text */}
+          <div className="space-y-2">
+            <Label htmlFor="test-text">Test Text</Label>
+            <Textarea
+              id="test-text"
+              value={testText}
+              onChange={(e) => setTestText(e.target.value)}
+              placeholder="Enter text to test your voice settings..."
+              className="min-h-[100px]"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button
+              onClick={testVoiceSettings}
+              disabled={!testText.trim()}
+              className="flex-1"
+              variant={isPlaying ? "destructive" : "default"}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="h-4 w-4 mr-2" />
+                  Stop Test
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Test Settings
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={resetSettings}
+              variant="outline"
+              className="px-6"
+            >
+              Reset
+            </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Settings Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Emotional Style</CardTitle>
-          <p className="text-sm text-gray-600">
-            Add emotional characteristics to your voice
-          </p>
+          <CardTitle>Settings Summary</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Emotion</Label>
-            <Select value={emotion} onValueChange={setEmotion}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {emotions.map((emo) => (
-                  <SelectItem key={emo.id} value={emo.id}>
-                    {emo.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-medium">Pitch:</span> {pitch[0].toFixed(1)}x
+            </div>
+            <div>
+              <span className="font-medium">Rate:</span> {rate[0].toFixed(1)}x
+            </div>
+            <div>
+              <span className="font-medium">Volume:</span> {volume[0].toFixed(1)}x
+            </div>
+            <div>
+              <span className="font-medium">Emphasis:</span> {(emphasis[0] * 100).toFixed(0)}%
+            </div>
+            <div className="col-span-2">
+              <span className="font-medium">Pause Duration:</span> {(pause[0] * 100).toFixed(0)}%
+            </div>
           </div>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Voice Effects</CardTitle>
-          <p className="text-sm text-gray-600">
-            Apply special effects to transform your voice
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Effect Type</Label>
-            <Select value={effect} onValueChange={setEffect}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {effects.map((eff) => (
-                  <SelectItem key={eff.id} value={eff.id}>
-                    {eff.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <div className="flex gap-4">
-        <Button onClick={previewVoice} variant="outline" className="flex-1">
-          <Play className="h-4 w-4 mr-2" />
-          Preview Voice
-        </Button>
-        <Button onClick={savePreset} className="flex-1">
-          <Save className="h-4 w-4 mr-2" />
-          Save Preset
-        </Button>
-        <Button onClick={resetToDefaults} variant="outline">
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Reset
-        </Button>
-      </div>
     </div>
   );
 };

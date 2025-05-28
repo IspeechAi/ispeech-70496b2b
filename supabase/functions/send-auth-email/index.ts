@@ -25,52 +25,55 @@ serve(async (req) => {
 
     console.log(`Sending ${type} email to ${to}`)
 
+    // Get the site URL from environment or use a default
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://your-domain.lovable.app'
+    
     // Create email content based on type
     let emailContent = ''
     let emailSubject = subject
 
     switch (type) {
       case 'magic_link':
-        emailSubject = 'Sign in to ISPEECH'
+        emailSubject = 'Sign in to iSPEECH'
         emailContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #7c3aed;">Welcome to ISPEECH</h1>
+            <h1 style="color: #7c3aed;">Welcome to iSPEECH</h1>
             <p>Click the link below to sign in to your account:</p>
-            <a href="${redirectUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0;">
-              Sign In to ISPEECH
+            <a href="${redirectUrl || `${siteUrl}/auth/callback`}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0;">
+              Sign In to iSPEECH
             </a>
             <p>If you didn't request this email, you can safely ignore it.</p>
-            <p>Best regards,<br>The ISPEECH Team</p>
+            <p>Best regards,<br>The iSPEECH Team</p>
           </div>
         `
         break
       
       case 'password_reset':
-        emailSubject = 'Reset your ISPEECH password'
+        emailSubject = 'Reset your iSPEECH password'
         emailContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #7c3aed;">Reset Your Password</h1>
             <p>Click the link below to reset your password:</p>
-            <a href="${redirectUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0;">
+            <a href="${redirectUrl || `${siteUrl}/auth/callback`}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0;">
               Reset Password
             </a>
             <p>If you didn't request this password reset, you can safely ignore this email.</p>
-            <p>Best regards,<br>The ISPEECH Team</p>
+            <p>Best regards,<br>The iSPEECH Team</p>
           </div>
         `
         break
       
       case 'email_confirmation':
-        emailSubject = 'Confirm your ISPEECH account'
+        emailSubject = 'Confirm your iSPEECH account'
         emailContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #7c3aed;">Welcome to ISPEECH!</h1>
+            <h1 style="color: #7c3aed;">Welcome to iSPEECH!</h1>
             <p>Please confirm your email address by clicking the link below:</p>
-            <a href="${redirectUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0;">
-              Confirm Email
+            <a href="${redirectUrl || `${siteUrl}/auth/callback`}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0;">
+              Confirm Email & Sign In
             </a>
-            <p>Thank you for joining ISPEECH!</p>
-            <p>Best regards,<br>The ISPEECH Team</p>
+            <p>After confirming, you'll be automatically signed in and ready to use iSPEECH!</p>
+            <p>Best regards,<br>The iSPEECH Team</p>
           </div>
         `
         break
@@ -79,8 +82,8 @@ serve(async (req) => {
     // Send email using Brevo SMTP
     const emailData = {
       sender: {
-        name: "ISPEECH",
-        email: "sscary470@gmail.com"
+        name: "iSPEECH",
+        email: "noreply@ispeech.app"
       },
       to: [{ email: to }],
       subject: emailSubject,
