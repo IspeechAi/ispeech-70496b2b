@@ -13,7 +13,9 @@ import {
   CheckCircle,
   Zap,
   Shield,
-  Users
+  Users,
+  Sparkles,
+  Waveform
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import VoicePreview from '@/components/VoicePreview';
@@ -26,30 +28,34 @@ const Landing = () => {
       icon: Volume2,
       title: 'AI Text-to-Speech',
       description: 'Convert text to natural-sounding speech with multiple voice options and providers',
-      color: 'text-purple-600'
+      color: 'text-purple-400',
+      link: '/tts'
     },
     {
-      icon: Mic,
+      icon: Sparkles,
       title: 'Voice Cloning',
       description: 'Clone any voice with just a short audio sample and use it for your content',
-      color: 'text-blue-600'
+      color: 'text-cyan-400',
+      link: '/settings?tab=voice-cloning'
     },
     {
       icon: RefreshCw,
       title: 'Voice Changer',
       description: 'Transform existing audio files to speak in different voices instantly',
-      color: 'text-green-600'
+      color: 'text-green-400',
+      link: '/settings?tab=voice-changer'
     },
     {
       icon: Sliders,
       title: 'Voice Customization',
       description: 'Fine-tune pitch, speed, emotion, and other parameters for perfect results',
-      color: 'text-orange-600'
+      color: 'text-orange-400',
+      link: '/settings?tab=customization'
     }
   ];
 
   const benefits = [
-    'Multiple TTS providers (ElevenLabs, OpenAI, Azure, Google)',
+    'Multiple TTS providers (ElevenLabs, OpenAI, Azure, Fish Audio)',
     'Custom voice cloning with just 30 seconds of audio',
     'Real-time voice parameter adjustments',
     'Secure API key management',
@@ -58,51 +64,55 @@ const Landing = () => {
   ];
 
   const stats = [
-    { icon: Users, label: 'Active Users', value: '10,000+' },
-    { icon: Volume2, label: 'Voices Generated', value: '500K+' },
+    { icon: Users, label: 'Active Users', value: '50,000+' },
+    { icon: Volume2, label: 'Voices Generated', value: '2M+' },
     { icon: Star, label: 'User Rating', value: '4.9/5' },
-    { icon: Zap, label: 'Processing Speed', value: '<3s' }
+    { icon: Zap, label: 'Processing Speed', value: '<2s' }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Hero Section */}
-      <section className="pt-20 pb-16 px-4">
+      <section className="pt-32 pb-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex justify-center mb-8">
-            <div className="p-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full">
-              <Mic className="h-12 w-12 text-white" />
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full blur-xl opacity-60 animate-pulse"></div>
+              <div className="relative p-6 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full">
+                <Mic className="h-16 w-16 text-white animate-bounce" />
+              </div>
             </div>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
-            <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
-              iSpeech
+          <h1 className="text-6xl md:text-8xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
+              iSPEECH
             </span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
             The ultimate AI voice processing platform for creators, businesses, and developers. 
             Clone voices, change audio, and generate speech with professional quality.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             {user ? (
-              <Button asChild size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-lg px-8 py-3">
+              <Button asChild size="lg" className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-lg px-8 py-4 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300">
                 <Link to="/tts">
+                  <Volume2 className="mr-2 h-5 w-5" />
                   Open Voice Studio
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
             ) : (
               <>
-                <Button asChild size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-lg px-8 py-3">
+                <Button asChild size="lg" className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-lg px-8 py-4 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300">
                   <Link to="/auth">
                     Get Started Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3 border-purple-300 hover:bg-purple-50">
+                <Button asChild variant="outline" size="lg" className="text-lg px-8 py-4 border-purple-500/50 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all duration-300">
                   <Link to="/auth">
                     Sign In
                   </Link>
@@ -116,10 +126,10 @@ const Landing = () => {
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="text-center">
-                  <Icon className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                  <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
+                <div key={index} className="text-center p-4 bg-slate-800/30 rounded-lg border border-purple-500/30 hover:border-purple-400/50 transition-colors duration-300">
+                  <Icon className="h-8 w-8 mx-auto mb-2 text-purple-400" />
+                  <div className="text-2xl font-bold text-white">{stat.value}</div>
+                  <div className="text-sm text-gray-400">{stat.label}</div>
                 </div>
               );
             })}
@@ -138,10 +148,10 @@ const Landing = () => {
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Powerful Voice Processing Features
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Everything you need to create, modify, and perfect voice content with AI technology
             </p>
           </div>
@@ -150,14 +160,16 @@ const Landing = () => {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={index} className="hover:shadow-xl transition-all duration-300 border-purple-100 hover:border-purple-300">
-                  <CardHeader className="text-center">
-                    <Icon className={`h-12 w-12 mx-auto mb-4 ${feature.color}`} />
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 text-center">{feature.description}</p>
-                  </CardContent>
+                <Card key={index} className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 hover:shadow-xl hover:shadow-purple-500/20 transition-all duration-300 group cursor-pointer">
+                  <Link to={feature.link}>
+                    <CardHeader className="text-center">
+                      <Icon className={`h-12 w-12 mx-auto mb-4 ${feature.color} group-hover:scale-110 transition-transform duration-300`} />
+                      <CardTitle className="text-lg text-white group-hover:text-purple-300 transition-colors">{feature.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-400 text-center group-hover:text-gray-300 transition-colors">{feature.description}</p>
+                    </CardContent>
+                  </Link>
                 </Card>
               );
             })}
@@ -166,22 +178,22 @@ const Landing = () => {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-purple-100 to-blue-100">
+      <section className="py-16 px-4 bg-gradient-to-r from-purple-900/20 to-cyan-900/20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose iSpeech?
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Why Choose iSPEECH?
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-400">
               Professional voice processing made simple and accessible
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {benefits.map((benefit, index) => (
-              <div key={index} className="flex items-center gap-3 p-4 bg-white rounded-lg shadow-sm">
-                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                <span className="text-gray-700">{benefit}</span>
+              <div key={index} className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-lg shadow-sm border border-purple-500/30 hover:border-purple-400/50 transition-colors duration-300">
+                <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
+                <span className="text-gray-300">{benefit}</span>
               </div>
             ))}
           </div>
@@ -191,26 +203,29 @@ const Landing = () => {
       {/* CTA Section */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
+          <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 shadow-xl shadow-purple-500/10">
             <CardContent className="pt-8 pb-8">
-              <Shield className="h-16 w-16 mx-auto mb-6 text-purple-600" />
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full blur-md opacity-60"></div>
+                <Shield className="relative h-16 w-16 mx-auto text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-4">
                 Ready to Transform Your Voice Content?
               </h2>
-              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                Join thousands of creators using iSpeech for professional voice processing. 
+              <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+                Join thousands of creators using iSPEECH for professional voice processing. 
                 Start for free with our basic features, no credit card required.
               </p>
               
               {!user && (
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300">
                     <Link to="/auth">
                       Start Free Trial
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" size="lg" className="border-purple-300 hover:bg-purple-50">
+                  <Button asChild variant="outline" size="lg" className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all duration-300">
                     <Link to="/auth">
                       Learn More
                     </Link>
@@ -223,14 +238,17 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 bg-gray-900 text-white">
+      <footer className="py-8 px-4 bg-gradient-to-r from-slate-900 to-purple-900 border-t border-purple-500/20">
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Mic className="h-6 w-6 text-purple-400" />
-            <span className="text-xl font-bold">iSpeech</span>
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full blur-sm opacity-60"></div>
+              <Mic className="relative h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">iSPEECH</span>
           </div>
           <p className="text-gray-400">
-            © 2024 iSpeech. Professional AI voice processing platform.
+            © 2024 iSPEECH. Professional AI voice processing platform.
           </p>
         </div>
       </footer>
