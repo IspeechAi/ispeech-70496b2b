@@ -2,16 +2,14 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Upload, Download, Play, Pause, Loader2, RefreshCw, Volume2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { VoiceClone } from '@/types/voiceClones';
-import { voiceConfigs, VoiceConfig } from '@/config/voiceConfigs';
+import AudioFileUpload from './voice-changer/AudioFileUpload';
+import TargetVoiceSelector from './voice-changer/TargetVoiceSelector';
+import ConversionResults from './voice-changer/ConversionResults';
 
 const VoiceChanger = () => {
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -102,7 +100,6 @@ const VoiceChanger = () => {
     setIsProcessing(true);
     
     try {
-      // Convert audio file to base64
       const base64Audio = await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -112,7 +109,6 @@ const VoiceChanger = () => {
         reader.readAsDataURL(audioFile);
       });
 
-      // Call voice change edge function
       const { data, error } = await supabase.functions.invoke('voice-change', {
         body: {
           audioFile: base64Audio,
@@ -221,23 +217,6 @@ const VoiceChanger = () => {
     document.body.removeChild(link);
   };
 
-  const getProviderBadge = (provider: string) => {
-    const colors = {
-      'ElevenLabs': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      'OpenAI': 'bg-green-500/20 text-green-400 border-green-500/30',
-      'Fish Audio': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
-    };
-    return colors[provider as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  };
-
-  const groupedVoices = voiceConfigs.reduce((acc, voice) => {
-    if (!acc[voice.provider]) {
-      acc[voice.provider] = [];
-    }
-    acc[voice.provider].push(voice);
-    return acc;
-  }, {} as Record<string, VoiceConfig[]>);
-
   return (
     <div className="space-y-6">
       <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 shadow-xl shadow-purple-500/10">
@@ -251,100 +230,19 @@ const VoiceChanger = () => {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* File Upload */}
-          <div>
-            <Label htmlFor="voice-file" className="text-gray-300">Upload Audio File</Label>
-            <div className="mt-2 flex items-center justify-center w-full">
-              <label
-                htmlFor="voice-file"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-purple-500/50 rounded-lg cursor-pointer bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
-              >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-10 h-10 mb-4 text-purple-400" />
-                  <p className="mb-2 text-sm text-gray-300">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500">MP3, WAV, M4A (MAX 25MB or 5 minutes)</p>
-                </div>
-                <Input
-                  id="voice-file"
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            {audioFile && (
-              <div className="mt-2 flex items-center justify-between p-3 bg-gradient-to-r from-green-500/20 to-cyan-500/20 rounded-lg border border-green-500/30">
-                <div className="flex items-center gap-2">
-                  <Volume2 className="h-5 w-5 text-green-400" />
-                  <span className="text-sm text-green-300">✓ {audioFile.name}</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={playOriginalAudio}
-                  className="text-green-400 hover:text-green-300 hover:bg-green-500/20"
-                >
-                  {playingOriginal ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            )}
-          </div>
+          <AudioFileUpload
+            audioFile={audioFile}
+            onFileUpload={handleFileUpload}
+            onPlayOriginal={playOriginalAudio}
+            playingOriginal={playingOriginal}
+          />
 
-          {/* Target Voice Selection */}
-          <div>
-            <Label htmlFor="target-voice" className="text-gray-300">Select Target Voice</Label>
-            <Select value={selectedTargetVoice} onValueChange={setSelectedTargetVoice}>
-              <SelectTrigger className="mt-2 bg-slate-800/50 border-purple-500/30 text-white focus:border-purple-400">
-                <SelectValue placeholder="Choose a voice to convert to" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-purple-500/50">
-                {Object.entries(groupedVoices).map(([provider, voices]) => (
-                  <div key={provider}>
-                    <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                      {provider}
-                    </div>
-                    {voices.map((voice) => (
-                      <SelectItem key={voice.id} value={voice.id} className="text-gray-300 focus:bg-purple-500/20">
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex flex-col">
-                            <span className="font-medium">{voice.name}</span>
-                            <span className="text-xs text-gray-500">{voice.gender} • {voice.category}</span>
-                          </div>
-                          <Badge variant="secondary" className={`ml-2 ${getProviderBadge(voice.provider)}`}>
-                            {voice.provider}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </div>
-                ))}
-                {myVoices.length > 0 && (
-                  <div>
-                    <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-purple-500/30 mt-2 pt-2">
-                      My Voices
-                    </div>
-                    {myVoices.map((voice) => (
-                      <SelectItem key={`clone_${voice.id}`} value={`clone_${voice.id}`} className="text-gray-300 focus:bg-purple-500/20">
-                        <div className="flex flex-col">
-                          <span className="font-medium">{voice.name} (Custom Clone)</span>
-                          <span className="text-xs text-gray-500">Personal</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+          <TargetVoiceSelector
+            selectedTargetVoice={selectedTargetVoice}
+            onVoiceChange={setSelectedTargetVoice}
+            myVoices={myVoices}
+          />
 
-          {/* Convert Button */}
           <Button
             onClick={processVoiceChange}
             disabled={!audioFile || !selectedTargetVoice || isProcessing}
@@ -364,53 +262,13 @@ const VoiceChanger = () => {
             )}
           </Button>
 
-          {/* Transcription Display */}
-          {transcription && (
-            <Card className="border-blue-500/30 bg-blue-500/10">
-              <CardContent className="pt-4">
-                <h4 className="font-medium text-blue-300 mb-2">Detected Speech:</h4>
-                <p className="text-gray-300 text-sm">{transcription}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Results */}
-          {processedAudioUrl && (
-            <Card className="border-green-500/30 bg-gradient-to-r from-green-500/10 to-cyan-500/10">
-              <CardContent className="pt-6">
-                <h3 className="font-semibold text-green-300 mb-4 flex items-center gap-2">
-                  <Volume2 className="h-5 w-5" />
-                  Conversion Complete!
-                </h3>
-                <div className="flex items-center justify-between gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={playProcessedAudio}
-                    className="flex-1 border-green-500/50 text-green-300 hover:bg-green-500/20"
-                  >
-                    {playingProcessed ? (
-                      <>
-                        <Pause className="w-4 h-4 mr-2" />
-                        Pause
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 mr-2" />
-                        Play Result
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={downloadProcessedAudio}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <ConversionResults
+            processedAudioUrl={processedAudioUrl}
+            transcription={transcription}
+            playingProcessed={playingProcessed}
+            onPlayProcessed={playProcessedAudio}
+            onDownload={downloadProcessedAudio}
+          />
         </CardContent>
       </Card>
     </div>
