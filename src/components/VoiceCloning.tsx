@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,14 +86,15 @@ const VoiceCloning = ({ onVoiceCloned }: VoiceCloning) => {
         reader.readAsDataURL(audioFile);
       });
 
-      // Create voice clone record
+      // Create voice clone record with placeholder audio_file_url
       const { data: voiceClone, error: insertError } = await supabase
         .from('voice_clones')
         .insert({
           user_id: user.id,
           name: voiceName.trim(),
           description: description.trim(),
-          status: 'processing'
+          status: 'processing',
+          audio_file_url: 'processing' // Temporary placeholder
         })
         .select()
         .single();
