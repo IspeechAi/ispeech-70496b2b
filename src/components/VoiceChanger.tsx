@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Download, Play, Pause, Loader2, RefreshCw, Waveform } from 'lucide-react';
+import { Upload, Download, Play, Pause, Loader2, RefreshCw, Volume2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
@@ -280,7 +280,7 @@ const VoiceChanger = () => {
             {audioFile && (
               <div className="mt-2 flex items-center justify-between p-3 bg-gradient-to-r from-green-500/20 to-cyan-500/20 rounded-lg border border-green-500/30">
                 <div className="flex items-center gap-2">
-                  <Waveform className="h-5 w-5 text-green-400" />
+                  <Volume2 className="h-5 w-5 text-green-400" />
                   <span className="text-sm text-green-300">✓ {audioFile.name}</span>
                 </div>
                 <Button
@@ -372,7 +372,7 @@ const VoiceChanger = () => {
             <Card className="border-green-500/30 bg-gradient-to-r from-green-500/10 to-cyan-500/10">
               <CardContent className="pt-6">
                 <h3 className="font-semibold text-green-300 mb-4 flex items-center gap-2">
-                  <Waveform className="h-5 w-5" />
+                  <Volume2 className="h-5 w-5" />
                   Conversion Complete!
                 </h3>
                 <div className="flex items-center justify-between gap-4">

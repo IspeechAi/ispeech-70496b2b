@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import {
   Shield,
   Users,
   Sparkles,
-  Waveform
+  AudioLines
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import VoicePreview from '@/components/VoicePreview';
