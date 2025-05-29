@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Upload, Download, Play, Pause, Loader2, RefreshCw, Volume2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { VoiceClone } from '@/types/voiceClones';
+import { voiceConfigs, VoiceConfig } from '@/config/voiceConfigs';
 
 const VoiceChanger = () => {
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -24,27 +26,6 @@ const VoiceChanger = () => {
   const [processedAudioElement, setProcessedAudioElement] = useState<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const { user } = useAuthStore();
-
-  const defaultVoices = [
-    { id: 'alloy', name: 'Alloy - Balanced and clear', provider: 'OpenAI' },
-    { id: 'echo', name: 'Echo - Deep and resonant', provider: 'OpenAI' },
-    { id: 'fable', name: 'Fable - Storytelling voice', provider: 'OpenAI' },
-    { id: 'onyx', name: 'Onyx - Strong and confident', provider: 'OpenAI' },
-    { id: 'nova', name: 'Nova - Bright and energetic', provider: 'OpenAI' },
-    { id: 'shimmer', name: 'Shimmer - Soft and elegant', provider: 'OpenAI' },
-    { id: 'alice', name: 'Alice - Professional and warm', provider: 'ElevenLabs' },
-    { id: 'bill', name: 'Bill - Authoritative narrator', provider: 'ElevenLabs' },
-    { id: 'brian', name: 'Brian - Friendly conversational', provider: 'ElevenLabs' },
-    { id: 'charlie', name: 'Charlie - Youthful and energetic', provider: 'ElevenLabs' },
-    { id: 'daniel', name: 'Daniel - Calm and reassuring', provider: 'ElevenLabs' },
-    { id: 'jessica', name: 'Jessica - Clear and articulate', provider: 'ElevenLabs' },
-    { id: 'liam', name: 'Liam - Rich and expressive', provider: 'ElevenLabs' },
-    { id: 'matilda', name: 'Matilda - Mature sophisticated', provider: 'ElevenLabs' },
-    { id: 'river', name: 'River - Natural and flowing', provider: 'ElevenLabs' },
-    { id: 'will', name: 'Will - Dynamic and engaging', provider: 'ElevenLabs' },
-    { id: 'adam', name: 'Adam - Professional clarity', provider: 'ElevenLabs' },
-    { id: 'rachel', name: 'Rachel - Expressive storyteller', provider: 'ElevenLabs' }
-  ];
 
   React.useEffect(() => {
     if (user) {
@@ -240,6 +221,23 @@ const VoiceChanger = () => {
     document.body.removeChild(link);
   };
 
+  const getProviderBadge = (provider: string) => {
+    const colors = {
+      'ElevenLabs': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      'OpenAI': 'bg-green-500/20 text-green-400 border-green-500/30',
+      'Fish Audio': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+    };
+    return colors[provider as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  };
+
+  const groupedVoices = voiceConfigs.reduce((acc, voice) => {
+    if (!acc[voice.provider]) {
+      acc[voice.provider] = [];
+    }
+    acc[voice.provider].push(voice);
+    return acc;
+  }, {} as Record<string, VoiceConfig[]>);
+
   return (
     <div className="space-y-6">
       <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 shadow-xl shadow-purple-500/10">
@@ -307,31 +305,40 @@ const VoiceChanger = () => {
                 <SelectValue placeholder="Choose a voice to convert to" />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-purple-500/50">
-                <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  Default Voices
-                </div>
-                {defaultVoices.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id} className="text-gray-300 focus:bg-purple-500/20">
-                    <div className="flex flex-col">
-                      <span>{voice.name}</span>
-                      <span className="text-xs text-gray-500">{voice.provider}</span>
+                {Object.entries(groupedVoices).map(([provider, voices]) => (
+                  <div key={provider}>
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      {provider}
                     </div>
-                  </SelectItem>
+                    {voices.map((voice) => (
+                      <SelectItem key={voice.id} value={voice.id} className="text-gray-300 focus:bg-purple-500/20">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{voice.name}</span>
+                            <span className="text-xs text-gray-500">{voice.gender} • {voice.category}</span>
+                          </div>
+                          <Badge variant="secondary" className={`ml-2 ${getProviderBadge(voice.provider)}`}>
+                            {voice.provider}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </div>
                 ))}
                 {myVoices.length > 0 && (
-                  <>
+                  <div>
                     <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-purple-500/30 mt-2 pt-2">
                       My Voices
                     </div>
                     {myVoices.map((voice) => (
                       <SelectItem key={`clone_${voice.id}`} value={`clone_${voice.id}`} className="text-gray-300 focus:bg-purple-500/20">
                         <div className="flex flex-col">
-                          <span>{voice.name} (Custom Clone)</span>
+                          <span className="font-medium">{voice.name} (Custom Clone)</span>
                           <span className="text-xs text-gray-500">Personal</span>
                         </div>
                       </SelectItem>
                     ))}
-                  </>
+                  </div>
                 )}
               </SelectContent>
             </Select>

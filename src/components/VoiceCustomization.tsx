@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Play, Pause, RotateCcw, Sliders as SlidersIcon, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { voiceConfigs, VoiceConfig } from '@/config/voiceConfigs';
 
 const VoiceCustomization = () => {
-  const [selectedVoice, setSelectedVoice] = useState('alice');
+  const [selectedVoice, setSelectedVoice] = useState('Xb7hH8MSUJpSbSDYk0k2');
   const [speed, setSpeed] = useState([1.0]);
   const [pitch, setPitch] = useState([0]);
   const [stability, setStability] = useState([0.5]);
@@ -19,18 +20,8 @@ const VoiceCustomization = () => {
   const [emotion, setEmotion] = useState([0.5]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
-
-  const voices = [
-    { id: 'alice', name: 'Alice', provider: 'ElevenLabs', gender: 'Female' },
-    { id: 'brian', name: 'Brian', provider: 'ElevenLabs', gender: 'Male' },
-    { id: 'charlie', name: 'Charlie', provider: 'ElevenLabs', gender: 'Male' },
-    { id: 'daniel', name: 'Daniel', provider: 'ElevenLabs', gender: 'Male' },
-    { id: 'jessica', name: 'Jessica', provider: 'ElevenLabs', gender: 'Female' },
-    { id: 'alloy', name: 'Alloy', provider: 'OpenAI', gender: 'Neutral' },
-    { id: 'echo', name: 'Echo', provider: 'OpenAI', gender: 'Male' },
-    { id: 'nova', name: 'Nova', provider: 'OpenAI', gender: 'Female' }
-  ];
 
   const sampleText = "Welcome to iSPEECH voice customization. This is how your voice will sound with the current settings.";
 
@@ -54,16 +45,22 @@ const VoiceCustomization = () => {
       return;
     }
 
+    setIsGenerating(true);
     setIsPlaying(true);
+    
     try {
-      const { data, error } = await supabase.functions.invoke('tts-sample', {
+      const selectedVoiceConfig = voiceConfigs.find(v => v.id === selectedVoice);
+      
+      const { data, error } = await supabase.functions.invoke('tts-generate', {
         body: {
           text: sampleText,
           voice: selectedVoice,
+          provider: selectedVoiceConfig?.provider.toLowerCase().replace(' ', ''),
           speed: speed[0],
           stability: stability[0],
           clarity: clarity[0],
-          emotion: emotion[0]
+          emotion: emotion[0],
+          pitch: pitch[0]
         }
       });
 
@@ -98,16 +95,27 @@ const VoiceCustomization = () => {
         description: "Unable to generate voice preview. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   const getProviderBadge = (provider: string) => {
     const colors = {
       'ElevenLabs': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      'OpenAI': 'bg-green-500/20 text-green-400 border-green-500/30'
+      'OpenAI': 'bg-green-500/20 text-green-400 border-green-500/30',
+      'Fish Audio': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
     };
     return colors[provider as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
+
+  const groupedVoices = voiceConfigs.reduce((acc, voice) => {
+    if (!acc[voice.provider]) {
+      acc[voice.provider] = [];
+    }
+    acc[voice.provider].push(voice);
+    return acc;
+  }, {} as Record<string, VoiceConfig[]>);
 
   return (
     <div className="space-y-6">
@@ -130,18 +138,25 @@ const VoiceCustomization = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-purple-500/50">
-                {voices.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id} className="text-gray-300 focus:bg-purple-500/20">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{voice.name}</span>
-                        <span className="text-xs text-gray-500">{voice.gender}</span>
-                      </div>
-                      <Badge variant="secondary" className={`ml-2 ${getProviderBadge(voice.provider)}`}>
-                        {voice.provider}
-                      </Badge>
+                {Object.entries(groupedVoices).map(([provider, voices]) => (
+                  <div key={provider}>
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      {provider}
                     </div>
-                  </SelectItem>
+                    {voices.map((voice) => (
+                      <SelectItem key={voice.id} value={voice.id} className="text-gray-300 focus:bg-purple-500/20">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{voice.name}</span>
+                            <span className="text-xs text-gray-500">{voice.gender} • {voice.category}</span>
+                          </div>
+                          <Badge variant="secondary" className={`ml-2 ${getProviderBadge(voice.provider)}`}>
+                            {voice.provider}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </div>
                 ))}
               </SelectContent>
             </Select>
@@ -257,9 +272,15 @@ const VoiceCustomization = () => {
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               onClick={playPreview}
+              disabled={isGenerating}
               className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-medium shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300"
             >
-              {isPlaying ? (
+              {isGenerating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Generating...
+                </>
+              ) : isPlaying ? (
                 <>
                   <Pause className="mr-2 h-4 w-4" />
                   Stop Preview

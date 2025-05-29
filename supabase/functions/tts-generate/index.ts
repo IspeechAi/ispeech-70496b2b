@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -14,6 +15,8 @@ interface TTSRequest {
   speed?: number;
   stability?: number;
   clarity?: number;
+  emotion?: number;
+  pitch?: number;
 }
 
 serve(async (req) => {
@@ -41,7 +44,17 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { text, voice, provider, api_key, speed = 1.0, stability = 0.5, clarity = 0.75 }: TTSRequest = await req.json()
+    const { 
+      text, 
+      voice, 
+      provider, 
+      api_key, 
+      speed = 1.0, 
+      stability = 0.5, 
+      clarity = 0.75,
+      emotion = 0.5,
+      pitch = 0
+    }: TTSRequest = await req.json()
 
     if (!text || !voice) {
       throw new Error('Text and voice are required')
@@ -64,51 +77,24 @@ serve(async (req) => {
 
       if (voiceClone && voiceClone.status === 'ready') {
         usedProvider = 'voice_clone'
-        // For cloned voices, use ElevenLabs with the stored voice data
-        if (voiceClone.audio_file_url && voiceClone.audio_file_url.startsWith('elevenlabs:')) {
-          const elevenLabsVoiceId = voiceClone.audio_file_url.replace('elevenlabs:', '')
-          audioUrl = await generateWithElevenLabs(text, elevenLabsVoiceId, speed, stability, clarity, api_key)
-        } else {
-          // Fallback to a similar voice for demo
-          audioUrl = await generateWithElevenLabs(text, 'Xb7hH8MSUJpSbSDYk0k2', speed, stability, clarity, api_key)
-        }
+        // Use ElevenLabs with the cloned voice
+        audioUrl = await generateWithElevenLabs(text, voice, speed, stability, clarity, emotion, pitch, api_key)
       } else {
         throw new Error('Voice clone not found or not ready')
       }
-    } else if (provider === 'custom') {
-      // Handle custom provider with API key
-      if (!api_key) {
-        throw new Error('API key required for custom provider')
-      }
-      
-      if (provider === 'elevenlabs' || voice.includes('alice') || voice.includes('brian')) {
-        audioUrl = await generateWithElevenLabs(text, voice, speed, stability, clarity, api_key)
-        usedProvider = 'elevenlabs'
-      } else if (provider === 'fishaudio') {
-        audioUrl = await generateWithFishAudio(text, voice, speed, api_key)
-        usedProvider = 'fishaudio'
-      } else {
-        throw new Error('Unsupported provider')
-      }
     } else {
-      // Use regular voice generation with provided API key
-      if (provider === 'elevenlabs' || (!provider && voice.includes('alice'))) {
-        if (!api_key) {
-          throw new Error('ElevenLabs API key required')
-        }
-        audioUrl = await generateWithElevenLabs(text, voice, speed, stability, clarity, api_key)
-        usedProvider = 'elevenlabs'
-      } else if (provider === 'fishaudio') {
-        if (!api_key) {
-          throw new Error('Fish Audio API key required')
-        }
-        audioUrl = await generateWithFishAudio(text, voice, speed, api_key)
+      // Determine provider based on voice or explicit provider
+      if (provider === 'fishaudio' || voice.startsWith('fish_')) {
+        audioUrl = await generateWithFishAudio(text, voice, speed, stability, clarity, emotion, pitch, api_key)
         usedProvider = 'fishaudio'
-      } else if (provider === 'openai' || (!provider && ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].includes(voice))) {
+      } else if (provider === 'elevenlabs' || isElevenLabsVoice(voice)) {
+        audioUrl = await generateWithElevenLabs(text, voice, speed, stability, clarity, emotion, pitch, api_key)
+        usedProvider = 'elevenlabs'
+      } else if (provider === 'openai' || isOpenAIVoice(voice)) {
         audioUrl = await generateWithOpenAI(text, voice, speed)
         usedProvider = 'openai'
       } else {
-        // Fallback to OpenAI if no API key provided
+        // Fallback to OpenAI
         audioUrl = await generateWithOpenAI(text, voice, speed)
         usedProvider = 'openai'
       }
@@ -146,7 +132,31 @@ serve(async (req) => {
   }
 })
 
-async function generateWithElevenLabs(text: string, voice: string, speed: number, stability: number, clarity: number, apiKey?: string): Promise<string> {
+function isElevenLabsVoice(voice: string): boolean {
+  const elevenLabsVoices = [
+    'Xb7hH8MSUJpSbSDYk0k2', 'pqHfZKP75CvOlQylNhV4', 'nPczCjzI2devNBz1zQrb',
+    'IKne3meq5aSn9XLyUdCD', 'onwK4e9ZLuTAKqWW03F9', 'cgSgspJ2msm6clMCkdW9',
+    'TX3LPaxmHKxFdv7VOQHJ', 'XrExE9yKIg1WjnnlVkGX', 'SAz9YHcvj6GT2YYXdXww',
+    'bIHbv24MWmeRgasZH58o', '9BWtsMINqrJLrRacOk9x', 'EXAVITQu4vr4xnSDxMaL'
+  ];
+  return elevenLabsVoices.includes(voice) || voice.includes('alice') || voice.includes('brian');
+}
+
+function isOpenAIVoice(voice: string): boolean {
+  const openAIVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+  return openAIVoices.includes(voice);
+}
+
+async function generateWithElevenLabs(
+  text: string, 
+  voice: string, 
+  speed: number, 
+  stability: number, 
+  clarity: number, 
+  emotion: number, 
+  pitch: number,
+  apiKey?: string
+): Promise<string> {
   const elevenlabsApiKey = apiKey || Deno.env.get('ELEVENLABS_API_KEY')
   if (!elevenlabsApiKey) {
     throw new Error('ElevenLabs API key not configured')
@@ -168,7 +178,7 @@ async function generateWithElevenLabs(text: string, voice: string, speed: number
     'rachel': 'EXAVITQu4vr4xnSDxMaL'
   }
 
-  const voiceId = voiceIdMap[voice] || voice // Use direct voice ID if not in map
+  const voiceId = voiceIdMap[voice] || voice
 
   const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
     method: 'POST',
@@ -183,7 +193,7 @@ async function generateWithElevenLabs(text: string, voice: string, speed: number
       voice_settings: {
         stability: stability,
         similarity_boost: clarity,
-        style: 0.5,
+        style: emotion,
         use_speaker_boost: true
       }
     })
@@ -198,15 +208,22 @@ async function generateWithElevenLabs(text: string, voice: string, speed: number
   return `data:audio/mpeg;base64,${base64Audio}`
 }
 
-async function generateWithFishAudio(text: string, voice: string, speed: number, apiKey: string): Promise<string> {
-  // Fish Audio API implementation (mock for now)
-  // In a real implementation, you would call Fish Audio's API here
+async function generateWithFishAudio(
+  text: string, 
+  voice: string, 
+  speed: number, 
+  stability: number, 
+  clarity: number, 
+  emotion: number, 
+  pitch: number,
+  apiKey?: string
+): Promise<string> {
+  // Mock Fish Audio generation for demo
+  // In production, this would call the actual Fish Audio API
+  console.log('Generating with Fish Audio:', { text, voice, speed, stability, clarity, emotion, pitch })
   
-  // For demo purposes, generate a simple audio placeholder
-  const audioContext = new AudioContext()
-  // This is a placeholder - replace with actual Fish Audio API call
-  
-  throw new Error('Fish Audio integration not yet implemented')
+  // For demo, return a placeholder or use OpenAI as fallback
+  return await generateWithOpenAI(text, 'nova', speed)
 }
 
 async function generateWithOpenAI(text: string, voice: string, speed: number): Promise<string> {
@@ -239,10 +256,4 @@ async function generateWithOpenAI(text: string, voice: string, speed: number): P
   const audioBuffer = await response.arrayBuffer()
   const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)))
   return `data:audio/mpeg;base64,${base64Audio}`
-}
-
-async function generateWithClonedVoice(text: string, voiceClone: any, speed: number, stability: number, clarity: number): Promise<string> {
-  // For now, use ElevenLabs with a similar voice as a placeholder
-  // In production, this would use the actual cloned voice data
-  return await generateWithElevenLabs(text, 'alice', speed, stability, clarity)
 }

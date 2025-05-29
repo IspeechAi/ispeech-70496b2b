@@ -11,6 +11,14 @@ export const apiKeyConfigs: ApiKeyConfig[] = [
     isRequired: false
   },
   {
+    id: 'fishaudio',
+    label: 'Fish Audio API Key',
+    placeholder: 'fa-...',
+    description: 'Advanced AI voice synthesis and cloning technology',
+    helpUrl: 'https://fish.audio/api',
+    isRequired: false
+  },
+  {
     id: 'openai',
     label: 'OpenAI API Key',
     placeholder: 'sk-...',
