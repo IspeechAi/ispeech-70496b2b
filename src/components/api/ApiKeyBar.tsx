@@ -14,9 +14,10 @@ interface ApiKeyBarProps {
   status: ApiKeyStatus | null;
   onKeyValidated: (provider: string) => void;
   onVoicesLoaded: (provider: string, voices: any[]) => void;
+  onQuotaExhausted: (provider: string) => void;
 }
 
-const ApiKeyBar = ({ provider, status, onKeyValidated, onVoicesLoaded }: ApiKeyBarProps) => {
+const ApiKeyBar = ({ provider, status, onKeyValidated, onVoicesLoaded, onQuotaExhausted }: ApiKeyBarProps) => {
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -97,6 +98,11 @@ const ApiKeyBar = ({ provider, status, onKeyValidated, onVoicesLoaded }: ApiKeyB
     
     const percentage = (status.quotaUsed / status.quotaLimit) * 100;
     const isNearLimit = percentage > 80;
+    
+    // Check if quota is exhausted
+    if (percentage >= 100) {
+      onQuotaExhausted(provider.id);
+    }
     
     return (
       <div className="mt-2">
