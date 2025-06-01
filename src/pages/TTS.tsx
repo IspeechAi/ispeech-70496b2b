@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Volume2, Play, Download } from 'lucide-react';
+import { Sparkles, Volume2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,12 +13,13 @@ import ApiKeyBar from '@/components/api/ApiKeyBar';
 import VoiceDropdown from '@/components/voice/VoiceDropdown';
 import VoiceCloneModal from '@/components/voice/VoiceCloneModal';
 import TTSGenerator from '@/components/tts/TTSGenerator';
+import LoadingScreen from '@/components/LoadingScreen';
 
 import { API_PROVIDERS } from '@/config/providers';
 import { Voice, ApiKeyStatus } from '@/types/providers';
 
 const TTS = () => {
-  const { user } = useAuthStore();
+  const { user, loading } = useAuthStore();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -28,15 +29,36 @@ const TTS = () => {
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [selectedProviderForCloning, setSelectedProviderForCloning] = useState<string>('');
   const [galaxyMode, setGalaxyMode] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-    } else {
-      fetchApiKeyStatuses();
-      fetchUserVoices();
+    if (!loading) {
+      if (!user) {
+        navigate('/auth');
+      } else {
+        initializeData();
+      }
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
+
+  const initializeData = async () => {
+    setIsLoadingData(true);
+    try {
+      await Promise.all([
+        fetchApiKeyStatuses(),
+        fetchUserVoices()
+      ]);
+    } catch (error) {
+      console.error('Error initializing data:', error);
+      toast({
+        title: "⚠️ Loading Error",
+        description: "Some data couldn't be loaded. You can still use the app.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   const fetchApiKeyStatuses = async () => {
     if (!user) return;
@@ -46,10 +68,13 @@ const TTS = () => {
         body: { userId: user.id }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('API key status error:', error);
+        return;
+      }
 
       const statusMap: Record<string, ApiKeyStatus> = {};
-      (data.statuses || []).forEach((status: ApiKeyStatus) => {
+      (data?.statuses || []).forEach((status: ApiKeyStatus) => {
         statusMap[status.provider] = status;
       });
       setApiKeyStatuses(statusMap);
@@ -66,20 +91,36 @@ const TTS = () => {
         body: { userId: user.id }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('User voices error:', error);
+        return;
+      }
 
-      setVoices(data.voices || []);
+      setVoices(data?.voices || []);
     } catch (error) {
       console.error('Error fetching voices:', error);
     }
   };
 
-  const handleKeyValidated = (provider: string) => {
+  const handleKeyValidated = async (provider: string) => {
     setApiKeyStatuses(prev => ({
       ...prev,
-      [provider]: { ...prev[provider], isValid: true, isActive: true }
+      [provider]: { 
+        provider,
+        isValid: true, 
+        isActive: true 
+      }
     }));
-    fetchUserVoices();
+    
+    // Refresh data after key validation
+    try {
+      await Promise.all([
+        fetchApiKeyStatuses(),
+        fetchUserVoices()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    }
     
     toast({
       title: "✅ API Key Verified",
@@ -105,6 +146,16 @@ const TTS = () => {
   };
 
   const handleOpenCloneModal = (provider: string) => {
+    const providerStatus = apiKeyStatuses[provider];
+    if (!providerStatus?.isActive) {
+      toast({
+        title: "❌ API Key Required",
+        description: `Please add a valid ${provider} API key before cloning voices.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedProviderForCloning(provider);
     setCloneModalOpen(true);
   };
@@ -133,6 +184,15 @@ const TTS = () => {
       variant: "destructive",
     });
 
+    // Mark provider as inactive
+    setApiKeyStatuses(prev => ({
+      ...prev,
+      [provider]: { 
+        ...prev[provider], 
+        isActive: false 
+      }
+    }));
+
     // Auto-enable next available provider
     const nextProvider = API_PROVIDERS.find(p => 
       p.id !== provider && apiKeyStatuses[p.id]?.isActive
@@ -154,6 +214,12 @@ const TTS = () => {
 
   const selectedVoiceObj = voices.find(v => v.id === selectedVoice) || null;
 
+  // Show loading screen while initializing
+  if (loading || isLoadingData) {
+    return <LoadingScreen />;
+  }
+
+  // Redirect if not authenticated
   if (!user) {
     return null;
   }
@@ -188,43 +254,21 @@ const TTS = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {API_PROVIDERS.map((provider) => (
             <div key={provider.id} className="space-y-3">
-              <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 backdrop-blur-sm shadow-xl shadow-purple-500/10 galaxy-glow">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <span className="text-2xl">{provider.icon}</span>
-                    {provider.name}
-                  </CardTitle>
-                  <p className="text-sm text-gray-400">{provider.description}</p>
-                </CardHeader>
-                <CardContent>
-                  <ApiKeyBar
-                    provider={provider}
-                    status={apiKeyStatuses[provider.id] || null}
-                    onKeyValidated={handleKeyValidated}
-                    onVoicesLoaded={handleVoicesLoaded}
-                    onQuotaExhausted={handleQuotaExhausted}
-                  />
-                  
-                  {/* Quota Display */}
-                  {apiKeyStatuses[provider.id]?.isActive && (
-                    <div className="mt-3 p-2 bg-slate-800/50 rounded-lg">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Usage:</span>
-                        <span className="text-cyan-300">
-                          {apiKeyStatuses[provider.id]?.quotaUsed || 0} / {apiKeyStatuses[provider.id]?.quotaLimit || '∞'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <ApiKeyBar
+                provider={provider}
+                status={apiKeyStatuses[provider.id] || null}
+                onKeyValidated={handleKeyValidated}
+                onVoicesLoaded={handleVoicesLoaded}
+                onQuotaExhausted={handleQuotaExhausted}
+              />
               
               {/* Voice Cloning Button */}
-              {provider.supportsCloning && apiKeyStatuses[provider.id]?.isActive && (
+              {provider.supportsCloning && (
                 <Button
                   onClick={() => handleOpenCloneModal(provider.id)}
                   variant="outline"
                   className="w-full border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/20 galaxy-glow"
+                  disabled={!apiKeyStatuses[provider.id]?.isActive}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   🎙 Clone Voice with {provider.name}
@@ -262,6 +306,12 @@ const TTS = () => {
                       <span className="text-gray-400">Cloned Voices:</span>
                       <span className="text-cyan-300">{voices.filter(v => v.isCloned).length}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Active Providers:</span>
+                      <span className="text-cyan-300">
+                        {Object.values(apiKeyStatuses).filter(s => s.isActive).length}
+                      </span>
+                    </div>
                     {selectedVoiceObj && (
                       <div className="flex justify-between">
                         <span className="text-gray-400">Selected:</span>
@@ -285,12 +335,14 @@ const TTS = () => {
         </div>
 
         {/* Voice Clone Modal */}
-        <VoiceCloneModal
-          isOpen={cloneModalOpen}
-          onClose={() => setCloneModalOpen(false)}
-          provider={API_PROVIDERS.find(p => p.id === selectedProviderForCloning)!}
-          onCloneSuccess={handleCloneSuccess}
-        />
+        {cloneModalOpen && selectedProviderForCloning && (
+          <VoiceCloneModal
+            isOpen={cloneModalOpen}
+            onClose={() => setCloneModalOpen(false)}
+            provider={API_PROVIDERS.find(p => p.id === selectedProviderForCloning)!}
+            onCloneSuccess={handleCloneSuccess}
+          />
+        )}
       </div>
     </div>
   );

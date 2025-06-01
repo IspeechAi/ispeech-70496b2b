@@ -3,8 +3,8 @@ export interface ApiProvider {
   id: string;
   name: string;
   description: string;
-  supportsCloning: boolean;
   icon: string;
+  supportsCloning: boolean;
 }
 
 export interface Voice {
@@ -23,10 +23,4 @@ export interface ApiKeyStatus {
   isActive: boolean;
   quotaUsed?: number;
   quotaLimit?: number;
-}
-
-export interface VoiceCloneRequest {
-  provider: string;
-  voiceName: string;
-  audioFile: File;
 }

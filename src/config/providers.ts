@@ -5,29 +5,29 @@ export const API_PROVIDERS: ApiProvider[] = [
   {
     id: 'elevenlabs',
     name: 'ElevenLabs',
-    description: 'Premium voice synthesis with emotion control',
+    description: 'Premium voice synthesis with emotion and multilingual support',
+    icon: '🎭',
     supportsCloning: true,
-    icon: '🎭'
   },
   {
     id: 'playht',
     name: 'PlayHT',
-    description: 'Natural-sounding voices with fast generation',
+    description: 'High-quality voices with advanced customization options',
+    icon: '🎪',
     supportsCloning: true,
-    icon: '🎵'
   },
   {
     id: 'fishaudio',
     name: 'Fish Audio',
-    description: 'Advanced voice cloning and synthesis',
-    supportsCloning: true,
-    icon: '🐟'
+    description: 'Fast and efficient voice generation for all use cases',
+    icon: '🐠',
+    supportsCloning: false,
   },
   {
     id: 'voicelab',
     name: 'Voicelab Audio',
-    description: 'Universal voice generation platform',
-    supportsCloning: false,
-    icon: '🔬'
-  }
+    description: 'Professional studio-quality voice synthesis',
+    icon: '🔬',
+    supportsCloning: true,
+  },
 ];

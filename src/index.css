@@ -61,6 +61,29 @@ body {
   }
 }
 
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes animate-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shooting-star {
+  0% { 
+    opacity: 0; 
+    transform: translateX(-100px) translateY(100px) rotate(45deg); 
+  }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { 
+    opacity: 0; 
+    transform: translateX(300px) translateY(-300px) rotate(45deg); 
+  }
+}
+
 /* Custom utility classes */
 .galaxy-glow {
   animation: galaxy-glow 3s ease-in-out infinite;
@@ -72,6 +95,18 @@ body {
 
 .floating-element {
   animation: float 6s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 8s ease-in-out infinite 2s;
 }
 
 /* Glassmorphism effect */
@@ -163,11 +198,29 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .galaxy-glow,
   .starfield-particle,
-  .floating-element {
+  .floating-element,
+  .animate-spin-slow,
+  .animate-float,
+  .animate-float-delayed {
     animation: none;
   }
   
   .btn-galaxy:hover {
     transform: none;
   }
+}
+
+/* Dropdown fixes */
+[data-radix-popper-content-wrapper] {
+  z-index: 50 !important;
+}
+
+.lucide {
+  flex-shrink: 0;
+}
+
+/* Ensure proper text rendering */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
 }
