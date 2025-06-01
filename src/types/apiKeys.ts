@@ -1,16 +1,18 @@
 
 export interface ApiKeyConfig {
   id: string;
-  name: string;
   label: string;
   placeholder: string;
-  isRequired: boolean;
-  helpText?: string;
+  description: string;
+  helpUrl?: string;
+  isRequired?: boolean; // Added missing property
 }
 
 export interface UserApiKey {
   id: string;
   provider: string;
   api_key: string;
-  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  is_active?: boolean; // Added missing property
 }

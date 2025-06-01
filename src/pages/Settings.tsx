@@ -2,12 +2,22 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Key, Upload, Sliders } from 'lucide-react';
+import { Settings as SettingsIcon, Key, Upload, Sliders, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import ApiKeysManager from '@/components/ApiKeysManager';
 import VoiceCloning from '@/components/VoiceCloning';
 import VoiceCustomization from '@/components/VoiceCustomization';
+import VoiceChanger from '@/components/VoiceChanger';
 
 const Settings = () => {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'api-keys';
+
+  const handleVoiceCloned = () => {
+    // Refresh or update any necessary state when a voice is cloned
+    console.log('Voice cloned successfully');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
       <div className="max-w-6xl mx-auto">
@@ -21,8 +31,8 @@ const Settings = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="api-keys" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+        <Tabs value={activeTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="api-keys" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
               API Keys
@@ -31,9 +41,13 @@ const Settings = () => {
               <Upload className="h-4 w-4" />
               Voice Cloning
             </TabsTrigger>
+            <TabsTrigger value="voice-changer" className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Voice Changer
+            </TabsTrigger>
             <TabsTrigger value="customization" className="flex items-center gap-2">
               <Sliders className="h-4 w-4" />
-              Voice Customization
+              Customization
             </TabsTrigger>
           </TabsList>
 
@@ -42,7 +56,11 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="voice-cloning">
-            <VoiceCloning />
+            <VoiceCloning onVoiceCloned={handleVoiceCloned} />
+          </TabsContent>
+
+          <TabsContent value="voice-changer">
+            <VoiceChanger />
           </TabsContent>
 
           <TabsContent value="customization">

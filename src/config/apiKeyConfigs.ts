@@ -4,50 +4,50 @@ import { ApiKeyConfig } from '@/types/apiKeys';
 export const apiKeyConfigs: ApiKeyConfig[] = [
   {
     id: 'elevenlabs',
-    name: 'ELEVENLABS_API_KEY',
     label: 'ElevenLabs API Key',
-    placeholder: 'sk_...',
-    isRequired: true,
-    helpText: 'Premium voices with emotional range and cloning capabilities'
+    placeholder: 'sk-...',
+    description: 'High-quality voice synthesis with custom voice cloning',
+    helpUrl: 'https://elevenlabs.io/app/speech-synthesis',
+    isRequired: false
+  },
+  {
+    id: 'fishaudio',
+    label: 'Fish Audio API Key',
+    placeholder: 'fa-...',
+    description: 'Advanced AI voice synthesis and cloning technology',
+    helpUrl: 'https://fish.audio/api',
+    isRequired: false
   },
   {
     id: 'openai',
-    name: 'OPENAI_API_KEY',
     label: 'OpenAI API Key',
-    placeholder: 'sk-proj-...',
-    isRequired: true,
-    helpText: 'Required for OpenAI TTS models (gpt-4o-audio-preview, tts-1, tts-1-hd)'
+    placeholder: 'sk-...',
+    description: 'Natural-sounding TTS voices from OpenAI',
+    helpUrl: 'https://platform.openai.com/api-keys',
+    isRequired: false
   },
   {
     id: 'azure',
-    name: 'AZURE_TTS_KEY',
     label: 'Azure Cognitive Services Key',
     placeholder: 'your-azure-key',
-    isRequired: false,
-    helpText: 'Microsoft Azure Speech Services for enterprise-grade TTS'
+    description: 'Microsoft Azure Text-to-Speech service',
+    helpUrl: 'https://portal.azure.com',
+    isRequired: false
   },
   {
     id: 'google',
-    name: 'GOOGLE_TTS_KEY',
     label: 'Google Cloud TTS API Key',
-    placeholder: 'AIza...',
-    isRequired: false,
-    helpText: 'Google Cloud Text-to-Speech with WaveNet voices'
+    placeholder: 'your-google-api-key',
+    description: 'Google Cloud Text-to-Speech API',
+    helpUrl: 'https://console.cloud.google.com/apis/credentials',
+    isRequired: false
   },
   {
-    id: 'aws',
-    name: 'AWS_ACCESS_KEY_ID',
-    label: 'AWS Access Key ID',
+    id: 'amazon_polly',
+    label: 'Amazon Polly Access Key',
     placeholder: 'AKIA...',
-    isRequired: false,
-    helpText: 'Amazon Polly for neural voices in multiple languages'
-  },
-  {
-    id: 'aws_secret',
-    name: 'AWS_SECRET_ACCESS_KEY',
-    label: 'AWS Secret Access Key',
-    placeholder: 'your-secret-key',
-    isRequired: false,
-    helpText: 'Required with AWS Access Key ID for Amazon Polly'
+    description: 'AWS Polly text-to-speech service',
+    helpUrl: 'https://console.aws.amazon.com/iam/home?#/security_credentials',
+    isRequired: false
   }
 ];

@@ -1,199 +1,202 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Save, RotateCcw } from 'lucide-react';
+import { Sliders as SlidersIcon, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { voiceConfigs } from '@/config/voiceConfigs';
+import VoiceSelector from './voice-customization/VoiceSelector';
+import VoiceParameterSlider from './voice-customization/VoiceParameterSlider';
+import VoiceControls from './voice-customization/VoiceControls';
 
 const VoiceCustomization = () => {
+  const [selectedVoice, setSelectedVoice] = useState('Xb7hH8MSUJpSbSDYk0k2');
+  const [speed, setSpeed] = useState([1.0]);
   const [pitch, setPitch] = useState([0]);
-  const [tone, setTone] = useState([50]);
-  const [speed, setSpeed] = useState([50]);
-  const [emotion, setEmotion] = useState('neutral');
-  const [effect, setEffect] = useState('none');
+  const [stability, setStability] = useState([0.5]);
+  const [clarity, setClarity] = useState([0.75]);
+  const [emotion, setEmotion] = useState([0.5]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const emotions = [
-    { id: 'neutral', name: 'Neutral' },
-    { id: 'happy', name: 'Happy' },
-    { id: 'sad', name: 'Sad' },
-    { id: 'excited', name: 'Excited' },
-    { id: 'angry', name: 'Angry' },
-    { id: 'calm', name: 'Calm' },
-    { id: 'whisper', name: 'Whisper' },
-    { id: 'shout', name: 'Shout' }
-  ];
-
-  const effects = [
-    { id: 'none', name: 'None' },
-    { id: 'robotic', name: 'Robotic' },
-    { id: 'child', name: 'Child-like' },
-    { id: 'elderly', name: 'Elderly' },
-    { id: 'alien', name: 'Alien' },
-    { id: 'monster', name: 'Monster' },
-    { id: 'echo', name: 'Echo' },
-    { id: 'reverb', name: 'Reverb' }
-  ];
+  const sampleText = "Welcome to iSPEECH voice customization. This is how your voice will sound with the current settings.";
 
   const resetToDefaults = () => {
+    setSpeed([1.0]);
     setPitch([0]);
-    setTone([50]);
-    setSpeed([50]);
-    setEmotion('neutral');
-    setEffect('none');
+    setStability([0.5]);
+    setClarity([0.75]);
+    setEmotion([0.5]);
     toast({
-      title: "Settings reset",
-      description: "Voice settings restored to defaults",
+      title: "Settings Reset",
+      description: "All voice parameters have been reset to default values.",
     });
   };
 
-  const savePreset = () => {
-    toast({
-      title: "Preset saved",
-      description: "Your custom voice settings have been saved",
-    });
-  };
+  const playPreview = async () => {
+    if (audioElement) {
+      audioElement.pause();
+      setAudioElement(null);
+      setIsPlaying(false);
+      return;
+    }
 
-  const previewVoice = () => {
-    toast({
-      title: "Preview playing",
-      description: "Playing voice sample with your custom settings",
-    });
+    setIsGenerating(true);
+    setIsPlaying(true);
+    
+    try {
+      const selectedVoiceConfig = voiceConfigs.find(v => v.id === selectedVoice);
+      
+      const { data, error } = await supabase.functions.invoke('tts-generate', {
+        body: {
+          text: sampleText,
+          voice: selectedVoice,
+          provider: selectedVoiceConfig?.provider.toLowerCase().replace(' ', ''),
+          speed: speed[0],
+          stability: stability[0],
+          clarity: clarity[0],
+          emotion: emotion[0],
+          pitch: pitch[0]
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.audioUrl) {
+        const audio = new Audio(data.audioUrl);
+        setAudioElement(audio);
+        
+        audio.onended = () => {
+          setIsPlaying(false);
+          setAudioElement(null);
+        };
+        
+        audio.onerror = () => {
+          setIsPlaying(false);
+          setAudioElement(null);
+          toast({
+            title: "Playback Error",
+            description: "Failed to play voice preview.",
+            variant: "destructive",
+          });
+        };
+
+        await audio.play();
+      }
+    } catch (error) {
+      console.error('Preview error:', error);
+      setIsPlaying(false);
+      toast({
+        title: "Preview Failed",
+        description: "Unable to generate voice preview. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 shadow-xl shadow-purple-500/10">
         <CardHeader>
-          <CardTitle>Voice Parameters</CardTitle>
-          <p className="text-sm text-gray-600">
-            Fine-tune your voice characteristics
+          <CardTitle className="flex items-center gap-2 text-white">
+            <SlidersIcon className="h-6 w-6 text-purple-400" />
+            Voice Customization
+          </CardTitle>
+          <p className="text-gray-400">
+            Fine-tune voice parameters to create the perfect sound for your content
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Pitch Control */}
-          <div>
-            <Label>Pitch: {pitch[0] > 0 ? '+' : ''}{pitch[0]}</Label>
-            <Slider
-              value={pitch}
-              onValueChange={setPitch}
-              min={-50}
-              max={50}
-              step={1}
-              className="mt-2"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Lower</span>
-              <span>Higher</span>
-            </div>
-          </div>
+          <VoiceSelector selectedVoice={selectedVoice} onVoiceChange={setSelectedVoice} />
 
-          {/* Tone Control */}
-          <div>
-            <Label>Tone Warmth: {tone[0]}%</Label>
-            <Slider
-              value={tone}
-              onValueChange={setTone}
-              min={0}
-              max={100}
-              step={1}
-              className="mt-2"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Cold</span>
-              <span>Warm</span>
-            </div>
-          </div>
-
-          {/* Speed Control */}
-          <div>
-            <Label>Speaking Speed: {speed[0]}%</Label>
-            <Slider
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <VoiceParameterSlider
+              label="Speech Speed"
               value={speed}
-              onValueChange={setSpeed}
-              min={25}
-              max={200}
-              step={5}
-              className="mt-2"
+              onChange={setSpeed}
+              min={0.5}
+              max={2}
+              step={0.1}
+              displayValue={`${speed[0].toFixed(1)}x`}
+              displayColor="text-purple-400"
+              labels={['Slow', 'Normal', 'Fast']}
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Slow</span>
-              <span>Fast</span>
+
+            <VoiceParameterSlider
+              label="Pitch"
+              value={pitch}
+              onChange={setPitch}
+              min={-10}
+              max={10}
+              step={1}
+              displayValue={`${pitch[0] > 0 ? '+' : ''}${pitch[0]}`}
+              displayColor="text-cyan-400"
+              labels={['Lower', 'Normal', 'Higher']}
+            />
+
+            <VoiceParameterSlider
+              label="Voice Stability"
+              value={stability}
+              onChange={setStability}
+              min={0}
+              max={1}
+              step={0.05}
+              displayValue={`${(stability[0] * 100).toFixed(0)}%`}
+              displayColor="text-green-400"
+              labels={['Variable', 'Stable']}
+            />
+
+            <VoiceParameterSlider
+              label="Voice Clarity"
+              value={clarity}
+              onChange={setClarity}
+              min={0}
+              max={1}
+              step={0.05}
+              displayValue={`${(clarity[0] * 100).toFixed(0)}%`}
+              displayColor="text-orange-400"
+              labels={['Soft', 'Clear']}
+            />
+
+            <div className="md:col-span-2">
+              <VoiceParameterSlider
+                label="Emotional Intensity"
+                value={emotion}
+                onChange={setEmotion}
+                min={0}
+                max={1}
+                step={0.05}
+                displayValue={`${(emotion[0] * 100).toFixed(0)}%`}
+                displayColor="text-pink-400"
+                labels={['Neutral', 'Moderate', 'Expressive']}
+              />
             </div>
           </div>
+
+          <VoiceControls
+            onPlayPreview={playPreview}
+            onResetDefaults={resetToDefaults}
+            isGenerating={isGenerating}
+            isPlaying={isPlaying}
+          />
+
+          <Card className="border-blue-500/30 bg-blue-500/10">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-blue-400" />
+                <span className="font-medium text-blue-300">Real-time Preview</span>
+              </div>
+              <p className="text-sm text-gray-400">
+                Adjust any parameter and click "Play Preview" to hear how your voice will sound with the current settings.
+              </p>
+            </CardContent>
+          </Card>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Emotional Style</CardTitle>
-          <p className="text-sm text-gray-600">
-            Add emotional characteristics to your voice
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Emotion</Label>
-            <Select value={emotion} onValueChange={setEmotion}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {emotions.map((emo) => (
-                  <SelectItem key={emo.id} value={emo.id}>
-                    {emo.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Voice Effects</CardTitle>
-          <p className="text-sm text-gray-600">
-            Apply special effects to transform your voice
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Effect Type</Label>
-            <Select value={effect} onValueChange={setEffect}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {effects.map((eff) => (
-                  <SelectItem key={eff.id} value={eff.id}>
-                    {eff.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <div className="flex gap-4">
-        <Button onClick={previewVoice} variant="outline" className="flex-1">
-          <Play className="h-4 w-4 mr-2" />
-          Preview Voice
-        </Button>
-        <Button onClick={savePreset} className="flex-1">
-          <Save className="h-4 w-4 mr-2" />
-          Save Preset
-        </Button>
-        <Button onClick={resetToDefaults} variant="outline">
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Reset
-        </Button>
-      </div>
     </div>
   );
 };
