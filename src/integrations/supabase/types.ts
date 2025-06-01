@@ -141,39 +141,6 @@ export type Database = {
         }
         Relationships: []
       }
-      voice_clones: {
-        Row: {
-          audio_file_url: string
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          audio_file_url: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          audio_file_url?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never

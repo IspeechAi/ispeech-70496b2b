@@ -1,119 +1,193 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Volume2 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
-import SignInForm from '@/components/auth/SignInForm';
-import SignUpForm from '@/components/auth/SignUpForm';
-import GitHubSignInButton from '@/components/auth/GitHubSignInButton';
-import FacebookSignInButton from '@/components/auth/FacebookSignInButton';
+import { Loader2, Volume2 } from 'lucide-react';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (user) {
       navigate('/tts');
     }
   }, [user, navigate]);
 
-  // Handle password reset mode
-  useEffect(() => {
-    const mode = searchParams.get('mode');
-    if (mode === 'reset') {
-      setShowForgotPassword(true);
-    }
-  }, [searchParams]);
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  if (showForgotPassword) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
-        <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
-      </div>
-    );
-  }
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Welcome to ISPEECH!",
+        description: "Account created successfully. You can now sign in.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Sign up failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Welcome back to ISPEECH!",
+        description: "Successfully signed in.",
+      });
+      navigate('/tts');
+    } catch (error: any) {
+      toast({
+        title: "Sign in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Volume2 className="h-8 w-8 text-purple-600 animate-pulse" />
-            <span className="text-2xl font-bold text-gray-900">iSPEECH</span>
+            <h1 className="text-3xl font-bold text-gray-900">ISPEECH</h1>
           </div>
-          <CardTitle>Welcome to iSPEECH</CardTitle>
-          <p className="text-sm text-gray-600">
-            Sign in to access AI-powered text-to-speech
-          </p>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="signin" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
+          <p className="text-gray-600">Sign in to access premium TTS features</p>
+        </div>
 
-            <TabsContent value="signin" className="space-y-4">
-              <SignInForm
-                email={email}
-                password={password}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-                onForgotPassword={() => setShowForgotPassword(true)}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-              />
-            </TabsContent>
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-center">Welcome</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="signin" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="signup" className="space-y-4">
-              <SignUpForm
-                email={email}
-                password={password}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-              />
-            </TabsContent>
+              <TabsContent value="signin">
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="Enter your password"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      'Sign In'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <GitHubSignInButton
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-              />
-              <FacebookSignInButton
-                isLoading={isLoading}
-                setIsLoading={setIsLoading}
-              />
-            </div>
-          </Tabs>
-
-          <div className="mt-6 text-center text-xs text-gray-500">
-            By signing up, you agree to our{' '}
-            <a href="/terms" className="text-purple-600 hover:underline">
-              Terms & Conditions
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+              <TabsContent value="signup">
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div>
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="signup-password">Password</Label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="Create a password"
+                      minLength={6}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      'Create Account'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
