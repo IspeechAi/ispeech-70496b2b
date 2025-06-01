@@ -13,11 +13,6 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'api-keys';
 
-  const handleVoiceCloned = () => {
-    // Refresh or update any necessary state when a voice is cloned
-    console.log('Voice cloned successfully');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
       <div className="max-w-6xl mx-auto">
@@ -56,7 +51,7 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="voice-cloning">
-            <VoiceCloning onVoiceCloned={handleVoiceCloned} />
+            <VoiceCloning />
           </TabsContent>
 
           <TabsContent value="voice-changer">
