@@ -1,28 +1,67 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings as SettingsIcon } from 'lucide-react';
-import GalaxyBackground from '@/components/galaxy/GalaxyBackground';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Settings as SettingsIcon, Key, Upload, Sliders, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import ApiKeysManager from '@/components/ApiKeysManager';
+import VoiceCloning from '@/components/VoiceCloning';
+import VoiceCustomization from '@/components/VoiceCustomization';
+import VoiceChanger from '@/components/VoiceChanger';
 
 const Settings = () => {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'api-keys';
+
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <GalaxyBackground />
-      
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 backdrop-blur-sm shadow-xl shadow-purple-500/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-cyan-300">
-              <SettingsIcon className="h-6 w-6" />
-              Account Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-300 text-center py-12">
-              Account settings and preferences will be available here.
-            </p>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
+            <SettingsIcon className="h-8 w-8" />
+            Settings
+          </h1>
+          <p className="text-gray-600">
+            Manage your API keys, voice cloning, and customization options
+          </p>
+        </div>
+
+        <Tabs value={activeTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="api-keys" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              API Keys
+            </TabsTrigger>
+            <TabsTrigger value="voice-cloning" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Voice Cloning
+            </TabsTrigger>
+            <TabsTrigger value="voice-changer" className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Voice Changer
+            </TabsTrigger>
+            <TabsTrigger value="customization" className="flex items-center gap-2">
+              <Sliders className="h-4 w-4" />
+              Customization
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="api-keys">
+            <ApiKeysManager />
+          </TabsContent>
+
+          <TabsContent value="voice-cloning">
+            <VoiceCloning />
+          </TabsContent>
+
+          <TabsContent value="voice-changer">
+            <VoiceChanger />
+          </TabsContent>
+
+          <TabsContent value="customization">
+            <VoiceCustomization />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

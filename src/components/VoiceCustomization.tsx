@@ -1,16 +1,17 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sliders as SlidersIcon, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Play, Pause, RotateCcw, Sliders as SlidersIcon, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { voiceConfigs } from '@/config/voiceConfigs';
-import VoiceSelector from './voice-customization/VoiceSelector';
-import VoiceParameterSlider from './voice-customization/VoiceParameterSlider';
-import VoiceControls from './voice-customization/VoiceControls';
 
 const VoiceCustomization = () => {
-  const [selectedVoice, setSelectedVoice] = useState('Xb7hH8MSUJpSbSDYk0k2');
+  const [selectedVoice, setSelectedVoice] = useState('alice');
   const [speed, setSpeed] = useState([1.0]);
   const [pitch, setPitch] = useState([0]);
   const [stability, setStability] = useState([0.5]);
@@ -18,8 +19,18 @@ const VoiceCustomization = () => {
   const [emotion, setEmotion] = useState([0.5]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+
+  const voices = [
+    { id: 'alice', name: 'Alice', provider: 'ElevenLabs', gender: 'Female' },
+    { id: 'brian', name: 'Brian', provider: 'ElevenLabs', gender: 'Male' },
+    { id: 'charlie', name: 'Charlie', provider: 'ElevenLabs', gender: 'Male' },
+    { id: 'daniel', name: 'Daniel', provider: 'ElevenLabs', gender: 'Male' },
+    { id: 'jessica', name: 'Jessica', provider: 'ElevenLabs', gender: 'Female' },
+    { id: 'alloy', name: 'Alloy', provider: 'OpenAI', gender: 'Neutral' },
+    { id: 'echo', name: 'Echo', provider: 'OpenAI', gender: 'Male' },
+    { id: 'nova', name: 'Nova', provider: 'OpenAI', gender: 'Female' }
+  ];
 
   const sampleText = "Welcome to iSPEECH voice customization. This is how your voice will sound with the current settings.";
 
@@ -43,22 +54,16 @@ const VoiceCustomization = () => {
       return;
     }
 
-    setIsGenerating(true);
     setIsPlaying(true);
-    
     try {
-      const selectedVoiceConfig = voiceConfigs.find(v => v.id === selectedVoice);
-      
-      const { data, error } = await supabase.functions.invoke('tts-generate', {
+      const { data, error } = await supabase.functions.invoke('tts-sample', {
         body: {
           text: sampleText,
           voice: selectedVoice,
-          provider: selectedVoiceConfig?.provider.toLowerCase().replace(' ', ''),
           speed: speed[0],
           stability: stability[0],
           clarity: clarity[0],
-          emotion: emotion[0],
-          pitch: pitch[0]
+          emotion: emotion[0]
         }
       });
 
@@ -93,9 +98,15 @@ const VoiceCustomization = () => {
         description: "Unable to generate voice preview. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsGenerating(false);
     }
+  };
+
+  const getProviderBadge = (provider: string) => {
+    const colors = {
+      'ElevenLabs': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      'OpenAI': 'bg-green-500/20 text-green-400 border-green-500/30'
+    };
+    return colors[provider as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   };
 
   return (
@@ -111,79 +122,167 @@ const VoiceCustomization = () => {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          <VoiceSelector selectedVoice={selectedVoice} onVoiceChange={setSelectedVoice} />
+          {/* Voice Selection */}
+          <div>
+            <Label className="text-gray-300 mb-3 block">Select Voice</Label>
+            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+              <SelectTrigger className="bg-slate-800/50 border-purple-500/30 text-white focus:border-purple-400">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-purple-500/50">
+                {voices.map((voice) => (
+                  <SelectItem key={voice.id} value={voice.id} className="text-gray-300 focus:bg-purple-500/20">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{voice.name}</span>
+                        <span className="text-xs text-gray-500">{voice.gender}</span>
+                      </div>
+                      <Badge variant="secondary" className={`ml-2 ${getProviderBadge(voice.provider)}`}>
+                        {voice.provider}
+                      </Badge>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
+          {/* Voice Parameters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <VoiceParameterSlider
-              label="Speech Speed"
-              value={speed}
-              onChange={setSpeed}
-              min={0.5}
-              max={2}
-              step={0.1}
-              displayValue={`${speed[0].toFixed(1)}x`}
-              displayColor="text-purple-400"
-              labels={['Slow', 'Normal', 'Fast']}
-            />
-
-            <VoiceParameterSlider
-              label="Pitch"
-              value={pitch}
-              onChange={setPitch}
-              min={-10}
-              max={10}
-              step={1}
-              displayValue={`${pitch[0] > 0 ? '+' : ''}${pitch[0]}`}
-              displayColor="text-cyan-400"
-              labels={['Lower', 'Normal', 'Higher']}
-            />
-
-            <VoiceParameterSlider
-              label="Voice Stability"
-              value={stability}
-              onChange={setStability}
-              min={0}
-              max={1}
-              step={0.05}
-              displayValue={`${(stability[0] * 100).toFixed(0)}%`}
-              displayColor="text-green-400"
-              labels={['Variable', 'Stable']}
-            />
-
-            <VoiceParameterSlider
-              label="Voice Clarity"
-              value={clarity}
-              onChange={setClarity}
-              min={0}
-              max={1}
-              step={0.05}
-              displayValue={`${(clarity[0] * 100).toFixed(0)}%`}
-              displayColor="text-orange-400"
-              labels={['Soft', 'Clear']}
-            />
-
-            <div className="md:col-span-2">
-              <VoiceParameterSlider
-                label="Emotional Intensity"
-                value={emotion}
-                onChange={setEmotion}
-                min={0}
-                max={1}
-                step={0.05}
-                displayValue={`${(emotion[0] * 100).toFixed(0)}%`}
-                displayColor="text-pink-400"
-                labels={['Neutral', 'Moderate', 'Expressive']}
+            {/* Speed */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-gray-300">Speech Speed</Label>
+                <span className="text-sm text-purple-400">{speed[0].toFixed(1)}x</span>
+              </div>
+              <Slider
+                value={speed}
+                onValueChange={setSpeed}
+                max={2}
+                min={0.5}
+                step={0.1}
+                className="w-full"
               />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Slow</span>
+                <span>Normal</span>
+                <span>Fast</span>
+              </div>
+            </div>
+
+            {/* Pitch */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-gray-300">Pitch</Label>
+                <span className="text-sm text-cyan-400">{pitch[0] > 0 ? '+' : ''}{pitch[0]}</span>
+              </div>
+              <Slider
+                value={pitch}
+                onValueChange={setPitch}
+                max={10}
+                min={-10}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Lower</span>
+                <span>Normal</span>
+                <span>Higher</span>
+              </div>
+            </div>
+
+            {/* Stability */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-gray-300">Voice Stability</Label>
+                <span className="text-sm text-green-400">{(stability[0] * 100).toFixed(0)}%</span>
+              </div>
+              <Slider
+                value={stability}
+                onValueChange={setStability}
+                max={1}
+                min={0}
+                step={0.05}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Variable</span>
+                <span>Stable</span>
+              </div>
+            </div>
+
+            {/* Clarity */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-gray-300">Voice Clarity</Label>
+                <span className="text-sm text-orange-400">{(clarity[0] * 100).toFixed(0)}%</span>
+              </div>
+              <Slider
+                value={clarity}
+                onValueChange={setClarity}
+                max={1}
+                min={0}
+                step={0.05}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Soft</span>
+                <span>Clear</span>
+              </div>
+            </div>
+
+            {/* Emotion */}
+            <div className="space-y-3 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-gray-300">Emotional Intensity</Label>
+                <span className="text-sm text-pink-400">{(emotion[0] * 100).toFixed(0)}%</span>
+              </div>
+              <Slider
+                value={emotion}
+                onValueChange={setEmotion}
+                max={1}
+                min={0}
+                step={0.05}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Neutral</span>
+                <span>Moderate</span>
+                <span>Expressive</span>
+              </div>
             </div>
           </div>
 
-          <VoiceControls
-            onPlayPreview={playPreview}
-            onResetDefaults={resetToDefaults}
-            isGenerating={isGenerating}
-            isPlaying={isPlaying}
-          />
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={playPreview}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-medium shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300"
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="mr-2 h-4 w-4" />
+                  Stop Preview
+                </>
+              ) : (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Play Preview
+                </>
+              )}
+            </Button>
+            
+            <Button
+              onClick={resetToDefaults}
+              variant="outline"
+              className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20 hover:border-purple-400 transition-all duration-300"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset Defaults
+            </Button>
+          </div>
 
+          {/* Real-time Preview Info */}
           <Card className="border-blue-500/30 bg-blue-500/10">
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 mb-2">

@@ -1,348 +1,193 @@
 
-import React, { useState, useEffect } from 'react';
-import { useAuthStore } from '@/stores/authStore';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Volume2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Volume2, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
-import GalaxyBackground from '@/components/galaxy/GalaxyBackground';
-import ApiKeyBar from '@/components/api/ApiKeyBar';
-import VoiceDropdown from '@/components/voice/VoiceDropdown';
-import VoiceCloneModal from '@/components/voice/VoiceCloneModal';
-import TTSGenerator from '@/components/tts/TTSGenerator';
-import LoadingScreen from '@/components/LoadingScreen';
-
-import { API_PROVIDERS } from '@/config/providers';
-import { Voice, ApiKeyStatus } from '@/types/providers';
+import { useToast } from '@/hooks/use-toast';
+import TTSHistory from '@/components/TTSHistory';
+import TextInput from '@/components/TextInput';
+import VoiceControls from '@/components/VoiceControls';
+import VoiceSettings from '@/components/VoiceSettings';
+import VoiceSelector from '@/components/VoiceSelector';
+import AudioPlayer from '@/components/AudioPlayer';
+import ApiStatus from '@/components/ApiStatus';
+import UsageStats from '@/components/UsageStats';
+import ProviderSelector from '@/components/ProviderSelector';
+import { useAuthStore } from '@/stores/authStore';
+import { useNavigate } from 'react-router-dom';
+import { useApiKeys } from '@/hooks/useApiKeys';
 
 const TTS = () => {
-  const { user, loading } = useAuthStore();
-  const navigate = useNavigate();
+  const [text, setText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState('alloy');
+  const [selectedProvider, setSelectedProvider] = useState('auto');
+  const [speed, setSpeed] = useState([1]);
+  const [stability, setStability] = useState([0.5]);
+  const [clarity, setClarity] = useState([0.75]);
+  const [currentProvider, setCurrentProvider] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const { userApiKeys } = useApiKeys();
 
-  const [voices, setVoices] = useState<Voice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState('');
-  const [apiKeyStatuses, setApiKeyStatuses] = useState<Record<string, ApiKeyStatus>>({});
-  const [cloneModalOpen, setCloneModalOpen] = useState(false);
-  const [selectedProviderForCloning, setSelectedProviderForCloning] = useState<string>('');
-  const [galaxyMode, setGalaxyMode] = useState(true);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        navigate('/auth');
-      } else {
-        initializeData();
-      }
+  React.useEffect(() => {
+    if (!user) {
+      navigate('/auth');
     }
-  }, [user, loading, navigate]);
+  }, [user, navigate]);
 
-  const initializeData = async () => {
-    setIsLoadingData(true);
-    try {
-      await Promise.all([
-        fetchApiKeyStatuses(),
-        fetchUserVoices()
-      ]);
-    } catch (error) {
-      console.error('Error initializing data:', error);
+  const handleGenerate = async () => {
+    if (!text.trim()) {
       toast({
-        title: "⚠️ Loading Error",
-        description: "Some data couldn't be loaded. You can still use the app.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
-
-  const fetchApiKeyStatuses = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('get-api-key-status', {
-        body: { userId: user.id }
-      });
-
-      if (error) {
-        console.error('API key status error:', error);
-        return;
-      }
-
-      const statusMap: Record<string, ApiKeyStatus> = {};
-      (data?.statuses || []).forEach((status: ApiKeyStatus) => {
-        statusMap[status.provider] = status;
-      });
-      setApiKeyStatuses(statusMap);
-    } catch (error) {
-      console.error('Error fetching API key statuses:', error);
-    }
-  };
-
-  const fetchUserVoices = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('get-user-voices', {
-        body: { userId: user.id }
-      });
-
-      if (error) {
-        console.error('User voices error:', error);
-        return;
-      }
-
-      setVoices(data?.voices || []);
-    } catch (error) {
-      console.error('Error fetching voices:', error);
-    }
-  };
-
-  const handleKeyValidated = async (provider: string) => {
-    setApiKeyStatuses(prev => ({
-      ...prev,
-      [provider]: { 
-        provider,
-        isValid: true, 
-        isActive: true 
-      }
-    }));
-    
-    // Refresh data after key validation
-    try {
-      await Promise.all([
-        fetchApiKeyStatuses(),
-        fetchUserVoices()
-      ]);
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    }
-    
-    toast({
-      title: "✅ API Key Verified",
-      description: `Your ${provider} API key has been validated and saved securely.`,
-    });
-  };
-
-  const handleVoicesLoaded = (provider: string, newVoices: any[]) => {
-    const formattedVoices: Voice[] = newVoices.map(voice => ({
-      id: voice.id,
-      name: voice.name,
-      provider: provider,
-      gender: voice.gender,
-      language: voice.language,
-      isCloned: voice.isCloned || false,
-      preview_url: voice.preview_url
-    }));
-
-    setVoices(prev => [
-      ...prev.filter(v => v.provider !== provider),
-      ...formattedVoices
-    ]);
-  };
-
-  const handleOpenCloneModal = (provider: string) => {
-    const providerStatus = apiKeyStatuses[provider];
-    if (!providerStatus?.isActive) {
-      toast({
-        title: "❌ API Key Required",
-        description: `Please add a valid ${provider} API key before cloning voices.`,
+        title: "Error",
+        description: "Please enter some text to convert to speech.",
         variant: "destructive",
       });
       return;
     }
-    
-    setSelectedProviderForCloning(provider);
-    setCloneModalOpen(true);
-  };
 
-  const handleCloneSuccess = (newVoice: any) => {
-    const voice: Voice = {
-      id: newVoice.id,
-      name: newVoice.name,
-      provider: selectedProviderForCloning,
-      isCloned: true
-    };
-
-    setVoices(prev => [...prev, voice]);
-    setSelectedVoice(voice.id);
-    
-    toast({
-      title: "🎉 Voice Cloned Successfully!",
-      description: `${voice.name} has been added to your voice library`,
-    });
-  };
-
-  const handleQuotaExhausted = (provider: string) => {
-    toast({
-      title: "⚠️ Usage Limit Reached",
-      description: `Your ${provider} API key has reached its usage limit. Please add another key or wait for the quota to reset.`,
-      variant: "destructive",
-    });
-
-    // Mark provider as inactive
-    setApiKeyStatuses(prev => ({
-      ...prev,
-      [provider]: { 
-        ...prev[provider], 
-        isActive: false 
-      }
-    }));
-
-    // Auto-enable next available provider
-    const nextProvider = API_PROVIDERS.find(p => 
-      p.id !== provider && apiKeyStatuses[p.id]?.isActive
-    );
-    
-    if (nextProvider) {
+    if (!user) {
       toast({
-        title: "🔄 Switching Provider",
-        description: `Automatically switched to ${nextProvider.name}`,
-      });
-    } else {
-      toast({
-        title: "❌ No Available Providers",
-        description: "Please add a new API key to continue generating audio.",
+        title: "Authentication Required",
+        description: "Please sign in to use the TTS service.",
         variant: "destructive",
       });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('tts-generate', {
+        body: {
+          text: text.trim(),
+          voice: selectedVoice,
+          provider: selectedProvider === 'auto' ? null : selectedProvider,
+          speed: speed[0],
+          stability: stability[0],
+          clarity: clarity[0]
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.audioUrl) {
+        setAudioUrl(data.audioUrl);
+        setCurrentProvider(data.provider);
+        toast({
+          title: "Success",
+          description: `Audio generated using ${data.provider}${data.cached ? ' (cached)' : ''}`,
+        });
+      }
+    } catch (error) {
+      console.error('TTS generation error:', error);
+      
+      // Check if it's a quota/availability error
+      if (error.message?.includes('quota') || error.message?.includes('unavailable')) {
+        toast({
+          title: "All voice engines are unavailable",
+          description: "All voice services are temporarily unavailable due to usage limits. Please try again later or add your own API key from Settings.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error.message || "Failed to generate audio. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const selectedVoiceObj = voices.find(v => v.id === selectedVoice) || null;
-
-  // Show loading screen while initializing
-  if (loading || isLoadingData) {
-    return <LoadingScreen />;
-  }
-
-  // Redirect if not authenticated
   if (!user) {
-    return null;
+    return null; // Will redirect in useEffect
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {galaxyMode && <GalaxyBackground />}
-      
-      <div className="relative z-10 max-w-7xl mx-auto p-6 space-y-8">
-        {/* Header with Galaxy Toggle */}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4">
+      <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <h1 className="text-4xl md:text-6xl font-bold">
-              <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                iSpeech
-              </span>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Volume2 className={`h-8 w-8 text-purple-600 ${isGenerating ? 'animate-spin' : 'animate-pulse'}`} />
+            <h1 className="text-4xl font-bold text-gray-900">
+              AI Text to Speech
             </h1>
-            <Button
-              onClick={() => setGalaxyMode(!galaxyMode)}
-              variant="outline"
-              className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20"
-            >
-              {galaxyMode ? '🌌' : '⭐'} Galaxy Mode
-            </Button>
           </div>
-          <p className="text-xl text-gray-300">
-            Experience the future of voice generation with advanced AI technology
+          <p className="text-gray-600">
+            Convert your text into lifelike speech with AI-powered voices
           </p>
+          {currentProvider && (
+            <p className="text-sm text-purple-600 mt-2">
+              Currently using: {currentProvider}
+            </p>
+          )}
         </div>
 
-        {/* API Key Management Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {API_PROVIDERS.map((provider) => (
-            <div key={provider.id} className="space-y-3">
-              <ApiKeyBar
-                provider={provider}
-                status={apiKeyStatuses[provider.id] || null}
-                onKeyValidated={handleKeyValidated}
-                onVoicesLoaded={handleVoicesLoaded}
-                onQuotaExhausted={handleQuotaExhausted}
-              />
-              
-              {/* Voice Cloning Button */}
-              {provider.supportsCloning && (
-                <Button
-                  onClick={() => handleOpenCloneModal(provider.id)}
-                  variant="outline"
-                  className="w-full border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/20 galaxy-glow"
-                  disabled={!apiKeyStatuses[provider.id]?.isActive}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  🎙 Clone Voice with {provider.name}
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Voice Selection and Generation */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 backdrop-blur-sm shadow-xl shadow-purple-500/10 galaxy-glow">
+          {/* Main TTS Panel */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Volume2 className="h-5 w-5" />
-                  Select Voice
+                <CardTitle className="flex items-center gap-2">
+                  <Volume2 className="h-5 w-5 animate-pulse" />
+                  iSPEECH Generator
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <VoiceDropdown
-                  voices={voices}
+              <CardContent className="space-y-6">
+                <TextInput text={text} setText={setText} />
+                
+                <VoiceSelector 
                   selectedVoice={selectedVoice}
                   onVoiceChange={setSelectedVoice}
                 />
-                
-                {/* Voice Stats */}
-                <div className="mt-4 p-3 bg-slate-800/30 rounded-lg">
-                  <div className="text-sm space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Total Voices:</span>
-                      <span className="text-cyan-300">{voices.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Cloned Voices:</span>
-                      <span className="text-cyan-300">{voices.filter(v => v.isCloned).length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Active Providers:</span>
-                      <span className="text-cyan-300">
-                        {Object.values(apiKeyStatuses).filter(s => s.isActive).length}
-                      </span>
-                    </div>
-                    {selectedVoiceObj && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Selected:</span>
-                        <span className="text-cyan-300">{selectedVoiceObj.name}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+
+                <ProviderSelector
+                  selectedProvider={selectedProvider}
+                  onProviderChange={setSelectedProvider}
+                  userApiKeys={userApiKeys}
+                />
+
+                <VoiceSettings
+                  speed={speed}
+                  setSpeed={setSpeed}
+                  stability={stability}
+                  setStability={setStability}
+                  clarity={clarity}
+                  setClarity={setClarity}
+                />
+
+                {/* Generate Button */}
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!text.trim() || isGenerating}
+                  className="w-full h-12 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Speech'
+                  )}
+                </Button>
+
+                <AudioPlayer audioUrl={audioUrl} />
               </CardContent>
             </Card>
           </div>
 
-          <div className="lg:col-span-2">
-            <TTSGenerator
-              selectedVoice={selectedVoiceObj}
-              voices={voices}
-              apiKeyStatuses={apiKeyStatuses}
-              onQuotaExhausted={handleQuotaExhausted}
-            />
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <ApiStatus />
+            <UsageStats />
           </div>
         </div>
-
-        {/* Voice Clone Modal */}
-        {cloneModalOpen && selectedProviderForCloning && (
-          <VoiceCloneModal
-            isOpen={cloneModalOpen}
-            onClose={() => setCloneModalOpen(false)}
-            provider={API_PROVIDERS.find(p => p.id === selectedProviderForCloning)!}
-            onCloneSuccess={handleCloneSuccess}
-          />
-        )}
       </div>
     </div>
   );
