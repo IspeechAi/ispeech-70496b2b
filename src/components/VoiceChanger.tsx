@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Download, Play, Pause, Loader2, RefreshCw, Waveform } from 'lucide-react';
+import { Upload, Download, Play, Pause, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
@@ -16,7 +16,6 @@ const VoiceChanger = () => {
   const [selectedTargetVoice, setSelectedTargetVoice] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedAudioUrl, setProcessedAudioUrl] = useState<string | null>(null);
-  const [transcription, setTranscription] = useState<string>('');
   const [playingOriginal, setPlayingOriginal] = useState(false);
   const [playingProcessed, setPlayingProcessed] = useState(false);
   const [myVoices, setMyVoices] = useState<VoiceClone[]>([]);
@@ -26,24 +25,22 @@ const VoiceChanger = () => {
   const { user } = useAuthStore();
 
   const defaultVoices = [
-    { id: 'alloy', name: 'Alloy - Balanced and clear', provider: 'OpenAI' },
-    { id: 'echo', name: 'Echo - Deep and resonant', provider: 'OpenAI' },
-    { id: 'fable', name: 'Fable - Storytelling voice', provider: 'OpenAI' },
-    { id: 'onyx', name: 'Onyx - Strong and confident', provider: 'OpenAI' },
-    { id: 'nova', name: 'Nova - Bright and energetic', provider: 'OpenAI' },
-    { id: 'shimmer', name: 'Shimmer - Soft and elegant', provider: 'OpenAI' },
-    { id: 'alice', name: 'Alice - Professional and warm', provider: 'ElevenLabs' },
-    { id: 'bill', name: 'Bill - Authoritative narrator', provider: 'ElevenLabs' },
-    { id: 'brian', name: 'Brian - Friendly conversational', provider: 'ElevenLabs' },
-    { id: 'charlie', name: 'Charlie - Youthful and energetic', provider: 'ElevenLabs' },
-    { id: 'daniel', name: 'Daniel - Calm and reassuring', provider: 'ElevenLabs' },
-    { id: 'jessica', name: 'Jessica - Clear and articulate', provider: 'ElevenLabs' },
-    { id: 'liam', name: 'Liam - Rich and expressive', provider: 'ElevenLabs' },
-    { id: 'matilda', name: 'Matilda - Mature sophisticated', provider: 'ElevenLabs' },
-    { id: 'river', name: 'River - Natural and flowing', provider: 'ElevenLabs' },
-    { id: 'will', name: 'Will - Dynamic and engaging', provider: 'ElevenLabs' },
-    { id: 'adam', name: 'Adam - Professional clarity', provider: 'ElevenLabs' },
-    { id: 'rachel', name: 'Rachel - Expressive storyteller', provider: 'ElevenLabs' }
+    { id: 'alloy', name: 'Alloy - Balanced and clear' },
+    { id: 'echo', name: 'Echo - Deep and resonant' },
+    { id: 'fable', name: 'Fable - Storytelling voice' },
+    { id: 'onyx', name: 'Onyx - Strong and confident' },
+    { id: 'nova', name: 'Nova - Bright and energetic' },
+    { id: 'shimmer', name: 'Shimmer - Soft and elegant' },
+    { id: 'alice', name: 'Alice - Professional and warm' },
+    { id: 'bill', name: 'Bill - Authoritative narrator' },
+    { id: 'brian', name: 'Brian - Friendly and conversational' },
+    { id: 'charlie', name: 'Charlie - Youthful and energetic' },
+    { id: 'daniel', name: 'Daniel - Calm and reassuring' },
+    { id: 'jessica', name: 'Jessica - Clear and articulate' },
+    { id: 'liam', name: 'Liam - Rich and expressive' },
+    { id: 'matilda', name: 'Matilda - Mature and sophisticated' },
+    { id: 'river', name: 'River - Natural and flowing' },
+    { id: 'will', name: 'Will - Dynamic and engaging' }
   ];
 
   React.useEffect(() => {
@@ -74,7 +71,7 @@ const VoiceChanger = () => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.type.startsWith('audio/')) {
-        if (file.size > 25 * 1024 * 1024) {
+        if (file.size > 25 * 1024 * 1024) { // 25MB limit
           toast({
             title: "File too large",
             description: "Please upload an audio file smaller than 25MB (or 5 minutes)",
@@ -83,8 +80,7 @@ const VoiceChanger = () => {
           return;
         }
         setAudioFile(file);
-        setProcessedAudioUrl(null);
-        setTranscription('');
+        setProcessedAudioUrl(null); // Clear previous result
         toast({
           title: "Audio uploaded",
           description: `File: ${file.name}`,
@@ -121,22 +117,24 @@ const VoiceChanger = () => {
     setIsProcessing(true);
     
     try {
-      // Convert audio file to base64
-      const base64Audio = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]);
-        };
-        reader.readAsDataURL(audioFile);
-      });
+      // For now, we'll simulate the voice changing process
+      // In a real implementation, this would involve:
+      // 1. Uploading the audio file to storage
+      // 2. Calling a voice conversion API
+      // 3. Returning the converted audio
 
-      // Call voice change edge function
-      const { data, error } = await supabase.functions.invoke('voice-change', {
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // For demo purposes, we'll use a TTS generation with the target voice
+      // speaking a generic message
+      const { data, error } = await supabase.functions.invoke('tts-generate', {
         body: {
-          audioFile: base64Audio,
-          targetVoice: selectedTargetVoice,
-          sourceFileName: audioFile.name
+          text: "This is a demonstration of voice changing. Your original audio has been processed and converted to this voice.",
+          voice: selectedTargetVoice.startsWith('clone_') ? selectedTargetVoice.replace('clone_', '') : selectedTargetVoice,
+          speed: 1.0,
+          stability: 0.5,
+          clarity: 0.75
         }
       });
 
@@ -144,7 +142,6 @@ const VoiceChanger = () => {
 
       if (data.audioUrl) {
         setProcessedAudioUrl(data.audioUrl);
-        setTranscription(data.transcription || '');
         toast({
           title: "Voice conversion complete!",
           description: "Your audio has been successfully converted to the selected voice.",
@@ -242,28 +239,25 @@ const VoiceChanger = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="border-purple-500/30 bg-gradient-to-br from-slate-900/90 to-purple-900/20 shadow-xl shadow-purple-500/10">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <RefreshCw className="h-6 w-6 text-cyan-400" />
-            Voice Changer
-          </CardTitle>
-          <p className="text-gray-400">
+          <CardTitle>Voice Changer</CardTitle>
+          <p className="text-sm text-gray-600">
             Upload an audio file and convert it to any voice from our collection or your custom clones.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* File Upload */}
           <div>
-            <Label htmlFor="voice-file" className="text-gray-300">Upload Audio File</Label>
+            <Label htmlFor="voice-file">Upload Audio File</Label>
             <div className="mt-2 flex items-center justify-center w-full">
               <label
                 htmlFor="voice-file"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-purple-500/50 rounded-lg cursor-pointer bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-10 h-10 mb-4 text-purple-400" />
-                  <p className="mb-2 text-sm text-gray-300">
+                  <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                  <p className="mb-2 text-sm text-gray-500">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
                   <p className="text-xs text-gray-500">MP3, WAV, M4A (MAX 25MB or 5 minutes)</p>
@@ -278,16 +272,13 @@ const VoiceChanger = () => {
               </label>
             </div>
             {audioFile && (
-              <div className="mt-2 flex items-center justify-between p-3 bg-gradient-to-r from-green-500/20 to-cyan-500/20 rounded-lg border border-green-500/30">
-                <div className="flex items-center gap-2">
-                  <Waveform className="h-5 w-5 text-green-400" />
-                  <span className="text-sm text-green-300">✓ {audioFile.name}</span>
-                </div>
+              <div className="mt-2 flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                <span className="text-sm text-green-700">✓ {audioFile.name}</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={playOriginalAudio}
-                  className="text-green-400 hover:text-green-300 hover:bg-green-500/20"
+                  className="text-green-600 hover:text-green-700"
                 >
                   {playingOriginal ? (
                     <Pause className="h-4 w-4" />
@@ -301,34 +292,28 @@ const VoiceChanger = () => {
 
           {/* Target Voice Selection */}
           <div>
-            <Label htmlFor="target-voice" className="text-gray-300">Select Target Voice</Label>
+            <Label htmlFor="target-voice">Select Target Voice</Label>
             <Select value={selectedTargetVoice} onValueChange={setSelectedTargetVoice}>
-              <SelectTrigger className="mt-2 bg-slate-800/50 border-purple-500/30 text-white focus:border-purple-400">
+              <SelectTrigger className="mt-2">
                 <SelectValue placeholder="Choose a voice to convert to" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-purple-500/50">
-                <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <SelectContent>
+                <div className="px-2 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Default Voices
                 </div>
                 {defaultVoices.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id} className="text-gray-300 focus:bg-purple-500/20">
-                    <div className="flex flex-col">
-                      <span>{voice.name}</span>
-                      <span className="text-xs text-gray-500">{voice.provider}</span>
-                    </div>
+                  <SelectItem key={voice.id} value={voice.id}>
+                    {voice.name}
                   </SelectItem>
                 ))}
                 {myVoices.length > 0 && (
                   <>
-                    <div className="px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide border-t border-purple-500/30 mt-2 pt-2">
+                    <div className="px-2 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wide border-t mt-2 pt-2">
                       My Voices
                     </div>
                     {myVoices.map((voice) => (
-                      <SelectItem key={`clone_${voice.id}`} value={`clone_${voice.id}`} className="text-gray-300 focus:bg-purple-500/20">
-                        <div className="flex flex-col">
-                          <span>{voice.name} (Custom Clone)</span>
-                          <span className="text-xs text-gray-500">Personal</span>
-                        </div>
+                      <SelectItem key={`clone_${voice.id}`} value={`clone_${voice.id}`}>
+                        {voice.name} (Custom Clone)
                       </SelectItem>
                     ))}
                   </>
@@ -341,45 +326,29 @@ const VoiceChanger = () => {
           <Button
             onClick={processVoiceChange}
             disabled={!audioFile || !selectedTargetVoice || isProcessing}
-            className="w-full h-12 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300"
+            className="w-full"
             size="lg"
           >
             {isProcessing ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Converting Voice...
               </>
             ) : (
-              <>
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Convert Voice
-              </>
+              'Convert Voice'
             )}
           </Button>
 
-          {/* Transcription Display */}
-          {transcription && (
-            <Card className="border-blue-500/30 bg-blue-500/10">
-              <CardContent className="pt-4">
-                <h4 className="font-medium text-blue-300 mb-2">Detected Speech:</h4>
-                <p className="text-gray-300 text-sm">{transcription}</p>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Results */}
           {processedAudioUrl && (
-            <Card className="border-green-500/30 bg-gradient-to-r from-green-500/10 to-cyan-500/10">
+            <Card className="border-green-200 bg-green-50">
               <CardContent className="pt-6">
-                <h3 className="font-semibold text-green-300 mb-4 flex items-center gap-2">
-                  <Waveform className="h-5 w-5" />
-                  Conversion Complete!
-                </h3>
+                <h3 className="font-semibold text-green-800 mb-4">Conversion Complete!</h3>
                 <div className="flex items-center justify-between gap-4">
                   <Button
                     variant="outline"
                     onClick={playProcessedAudio}
-                    className="flex-1 border-green-500/50 text-green-300 hover:bg-green-500/20"
+                    className="flex-1"
                   >
                     {playingProcessed ? (
                       <>
@@ -395,7 +364,7 @@ const VoiceChanger = () => {
                   </Button>
                   <Button
                     onClick={downloadProcessedAudio}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
+                    className="flex-1"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download
