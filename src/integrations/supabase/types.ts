@@ -105,6 +105,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_valid: boolean
+          provider: string
+          quota_limit: number | null
+          quota_used: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_valid?: boolean
+          provider: string
+          quota_limit?: number | null
+          quota_used?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_valid?: boolean
+          provider?: string
+          quota_limit?: number | null
+          quota_used?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_tts_history: {
         Row: {
           audio_url: string | null
@@ -138,6 +177,78 @@ export type Database = {
           user_id?: string | null
           voice_id?: string | null
           voice_type?: Database["public"]["Enums"]["voice_type"] | null
+        }
+        Relationships: []
+      }
+      user_voices: {
+        Row: {
+          clone_audio_url: string | null
+          created_at: string
+          gender: string | null
+          id: string
+          is_cloned: boolean
+          language: string | null
+          provider: string
+          user_id: string
+          voice_id: string
+          voice_name: string
+        }
+        Insert: {
+          clone_audio_url?: string | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          is_cloned?: boolean
+          language?: string | null
+          provider: string
+          user_id: string
+          voice_id: string
+          voice_name: string
+        }
+        Update: {
+          clone_audio_url?: string | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          is_cloned?: boolean
+          language?: string | null
+          provider?: string
+          user_id?: string
+          voice_id?: string
+          voice_name?: string
+        }
+        Relationships: []
+      }
+      voice_clones: {
+        Row: {
+          audio_file_url: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_file_url: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_file_url?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
