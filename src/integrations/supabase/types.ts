@@ -75,6 +75,44 @@ export type Database = {
         }
         Relationships: []
       }
+      tts_history: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          id: string
+          provider: string
+          text_input: string
+          user_id: string | null
+          voice: string
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          id?: string
+          provider: string
+          text_input: string
+          user_id?: string | null
+          voice: string
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          id?: string
+          provider?: string
+          text_input?: string
+          user_id?: string | null
+          voice?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tts_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tts_usage_tracking: {
         Row: {
           characters_used: number
@@ -141,6 +179,30 @@ export type Database = {
           quota_used?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          credits: number
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          email: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          email?: string
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }

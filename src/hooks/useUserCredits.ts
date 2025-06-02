@@ -18,17 +18,36 @@ export const useUserCredits = () => {
     }
 
     try {
-      const { data, error } = await supabase
+      // First check if user profile exists, if not create it
+      let { data: profile, error: fetchError } = await supabase
         .from('user_profiles')
         .select('credits')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching credits:', error);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching credits:', fetchError);
         setCredits(0);
+      } else if (!profile) {
+        // Create profile if it doesn't exist
+        const { data: newProfile, error: insertError } = await supabase
+          .from('user_profiles')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            credits: 10
+          })
+          .select('credits')
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          setCredits(0);
+        } else {
+          setCredits(newProfile?.credits || 10);
+        }
       } else {
-        setCredits(data?.credits || 0);
+        setCredits(profile?.credits || 0);
       }
     } catch (error) {
       console.error('Error:', error);

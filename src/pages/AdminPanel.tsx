@@ -52,7 +52,7 @@ const AdminPanel = () => {
 
       if (usersError) throw usersError;
 
-      // Fetch generation history
+      // Fetch generation history from tts_history table
       const { data: historyData, error: historyError } = await supabase
         .from('tts_history')
         .select(`
@@ -71,7 +71,7 @@ const AdminPanel = () => {
       setUsers(usersData || []);
       setHistory(historyData?.map(item => ({
         id: item.id,
-        user_email: item.user_profiles.email,
+        user_email: (item.user_profiles as any)?.email || 'Unknown',
         text_input: item.text_input,
         provider: item.provider,
         voice: item.voice,

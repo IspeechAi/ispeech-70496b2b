@@ -191,14 +191,13 @@ const TTS = () => {
       if (data.audioUrl) {
         setAudioUrl(data.audioUrl);
         
-        // Save to history
+        // Save to history using tts_history table
         await supabase.from('tts_history').insert({
           user_id: user.id,
           text_input: text.trim(),
           provider,
           voice,
           audio_url: data.audioUrl,
-          created_at: new Date().toISOString(),
         });
 
         toast({
