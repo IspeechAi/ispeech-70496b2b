@@ -38,37 +38,6 @@ const TTS = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Voice data for each provider
-  const providerVoices = {
-    openai: [
-      { id: 'alloy', name: 'Alloy' },
-      { id: 'echo', name: 'Echo' },
-      { id: 'fable', name: 'Fable' },
-      { id: 'onyx', name: 'Onyx' },
-      { id: 'nova', name: 'Nova' },
-      { id: 'shimmer', name: 'Shimmer' },
-    ],
-    elevenlabs: [
-      { id: 'rachel', name: 'Rachel' },
-      { id: 'domi', name: 'Domi' },
-      { id: 'bella', name: 'Bella' },
-      { id: 'antoni', name: 'Antoni' },
-      { id: 'elli', name: 'Elli' },
-      { id: 'josh', name: 'Josh' },
-      { id: 'arnold', name: 'Arnold' },
-      { id: 'adam', name: 'Adam' },
-      { id: 'sam', name: 'Sam' },
-    ],
-    playht: [
-      { id: 'jenny', name: 'Jenny' },
-      { id: 'matt', name: 'Matt' },
-      { id: 'ryan', name: 'Ryan' },
-      { id: 'emma', name: 'Emma' },
-      { id: 'brian', name: 'Brian' },
-      { id: 'amy', name: 'Amy' },
-    ],
-  };
-
   useEffect(() => {
     if (!user) {
       navigate('/auth');
@@ -77,14 +46,11 @@ const TTS = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    // Reset voice selection when provider changes
+    // Reset states when provider changes
     setVoice('');
     setIsApiKeyValid(null);
     setApiKey('');
-    setVoices(providerVoices[provider]);
-    if (providerVoices[provider].length > 0) {
-      setVoice(providerVoices[provider][0].id);
-    }
+    setVoices([]);
   }, [provider]);
 
   const validateApiKey = async () => {
@@ -98,37 +64,59 @@ const TTS = () => {
     }
 
     setValidating(true);
+    setLoadingVoices(true);
+    
     try {
+      console.log('Validating API key for provider:', provider);
+      
       const { data, error } = await supabase.functions.invoke('validate-api-key', {
         body: { provider, apiKey },
       });
 
-      if (error) throw error;
+      console.log('Validation response:', data, error);
 
-      if (data.valid) {
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to validate API key');
+      }
+
+      if (data && data.valid) {
         setIsApiKeyValid(true);
+        
+        // Set voices from the API response
+        if (data.voices && Array.isArray(data.voices)) {
+          setVoices(data.voices);
+          if (data.voices.length > 0) {
+            setVoice(data.voices[0].id); // Set first voice as default
+          }
+          console.log('Loaded voices:', data.voices);
+        }
+        
         toast({
           title: "Success",
-          description: "API key is valid",
+          description: `${data.message}. Loaded ${data.voices?.length || 0} voices.`,
         });
       } else {
         setIsApiKeyValid(false);
+        setVoices([]);
         toast({
           title: "Invalid API Key",
-          description: data.message || "The API key is invalid",
+          description: data?.message || "The API key is invalid",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('API key validation error:', error);
       setIsApiKeyValid(false);
+      setVoices([]);
       toast({
         title: "Validation Failed",
-        description: "Could not validate API key. Please try again.",
+        description: error.message || "Could not validate API key. Please try again.",
         variant: "destructive",
       });
     } finally {
       setValidating(false);
+      setLoadingVoices(false);
     }
   };
 
@@ -169,6 +157,15 @@ const TTS = () => {
       return;
     }
 
+    if (!voice) {
+      toast({
+        title: "Voice Required",
+        description: "Please select a voice",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const creditDeducted = await deductCredit();
     if (!creditDeducted) return;
 
@@ -177,6 +174,8 @@ const TTS = () => {
     setAudioBlob(null);
 
     try {
+      console.log('Generating TTS with:', { text: text.trim(), provider, voice, apiKeyLength: apiKey.length });
+      
       const { data, error } = await supabase.functions.invoke('generate-tts', {
         body: {
           text: text.trim(),
@@ -186,12 +185,16 @@ const TTS = () => {
         },
       });
 
-      if (error) throw error;
+      console.log('TTS generation response:', data, error);
 
-      if (data.audioUrl) {
+      if (error) {
+        throw new Error(error.message || 'Failed to generate audio');
+      }
+
+      if (data && data.audioUrl) {
         setAudioUrl(data.audioUrl);
         
-        // Save to history using tts_history table
+        // Save to history
         await supabase.from('tts_history').insert({
           user_id: user.id,
           text_input: text.trim(),
@@ -204,6 +207,8 @@ const TTS = () => {
           title: "Success",
           description: `Audio generated successfully using ${provider}`,
         });
+      } else {
+        throw new Error('No audio URL returned');
       }
     } catch (error) {
       console.error('TTS generation error:', error);
@@ -270,15 +275,6 @@ const TTS = () => {
               {/* Provider Selection */}
               <ProviderSelector value={provider} onValueChange={setProvider} />
 
-              {/* Voice Selection */}
-              <VoiceSelector
-                provider={provider}
-                value={voice}
-                onValueChange={setVoice}
-                voices={voices}
-                loading={loadingVoices}
-              />
-
               {/* API Key Input */}
               <ApiKeyInput
                 provider={provider}
@@ -289,10 +285,21 @@ const TTS = () => {
                 validating={validating}
               />
 
+              {/* Voice Selection - Only show if API key is valid and voices are loaded */}
+              {isApiKeyValid && voices.length > 0 && (
+                <VoiceSelector
+                  provider={provider}
+                  value={voice}
+                  onValueChange={setVoice}
+                  voices={voices}
+                  loading={loadingVoices}
+                />
+              )}
+
               {/* Generate Button */}
               <Button
                 onClick={generateAudio}
-                disabled={!text.trim() || !isApiKeyValid || generating || credits <= 0}
+                disabled={!text.trim() || !isApiKeyValid || !voice || generating || credits <= 0}
                 className="w-full h-12 text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
               >
                 {generating ? (

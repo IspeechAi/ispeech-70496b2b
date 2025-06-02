@@ -2,7 +2,7 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export type Provider = 'openai' | 'elevenlabs' | 'playht';
+export type Provider = 'openai' | 'elevenlabs' | 'playht' | 'fishaudio';
 
 interface ProviderSelectorProps {
   value: Provider;
@@ -13,6 +13,7 @@ const providers = [
   { value: 'openai' as const, label: 'OpenAI TTS' },
   { value: 'elevenlabs' as const, label: 'ElevenLabs' },
   { value: 'playht' as const, label: 'PlayHT' },
+  { value: 'fishaudio' as const, label: 'Fish Audio' },
 ];
 
 export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
